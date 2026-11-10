@@ -25,15 +25,11 @@ struct SelectionInspector: View {
     }
 
     private func selectionHeader(_ title: String) -> some View {
-        HStack {
-            Text(title).font(Theme.heading).foregroundStyle(Theme.text)
-            Spacer()
-            IconButton(symbol: "trash", help: "Delete") { model.deleteSelection() }
-        }
+        InspectorHeader(title: title, onBack: { model.selection = nil }, onDelete: { model.deleteSelection() })
     }
 
     private func clipSection(_ clip: VideoClip) -> some View {
-        VStack(alignment: .leading, spacing: Theme.s) {
+        VStack(alignment: .leading, spacing: 14) {
             selectionHeader("Clip")
             Text("\(formatTime(clip.sourceStart.seconds, showFraction: true)) – \(formatTime(clip.sourceEnd.seconds, showFraction: true)) of source")
                 .font(Theme.mono).foregroundStyle(Theme.textSecondary)
@@ -56,7 +52,6 @@ struct SelectionInspector: View {
                 Button("Move Earlier") { model.moveClip(clip.id, by: -1) }.buttonStyle(.compact)
                 Button("Move Later") { model.moveClip(clip.id, by: 1) }.buttonStyle(.compact)
             }
-            Divider().overlay(Theme.border).padding(.vertical, Theme.xs)
         }
     }
 
@@ -70,7 +65,7 @@ struct SelectionInspector: View {
     }
 
     private func keyframeSection(_ id: UUID) -> some View {
-        VStack(alignment: .leading, spacing: Theme.s) {
+        VStack(alignment: .leading, spacing: 14) {
             selectionHeader("Camera Keyframe")
             SliderRow(title: "Scale", value: model.keyframeBinding(id, \.scale, fallback: 1), range: 1...5,
                       format: { String(format: "%.2f×", $0) }, onEditingEnded: model.endGesture)
@@ -82,12 +77,11 @@ struct SelectionInspector: View {
                 ForEach(Easing.allCases) { Text($0.displayName).tag($0) }
             }
             Text("Keyframes take over the camera between the first and last keyframe.").font(Theme.caption).foregroundStyle(Theme.textTertiary)
-            Divider().overlay(Theme.border).padding(.vertical, Theme.xs)
         }
     }
 
     private func textSection(_ id: UUID) -> some View {
-        VStack(alignment: .leading, spacing: Theme.s) {
+        VStack(alignment: .leading, spacing: 14) {
             selectionHeader("Text")
             TextField("Text", text: model.textBinding(id, \.text, fallback: ""), axis: .vertical)
                 .textFieldStyle(.roundedBorder).lineLimit(1...4)
@@ -103,12 +97,11 @@ struct SelectionInspector: View {
             ColorRow(title: "Color", color: model.textBinding(id, \.color, fallback: .white))
             ColorRow(title: "Background", color: model.textBinding(id, \.backgroundColor, fallback: .clear))
             timeRow(start: model.textBinding(id, \.startTime, fallback: .zero), end: model.textBinding(id, \.endTime, fallback: .zero))
-            Divider().overlay(Theme.border).padding(.vertical, Theme.xs)
         }
     }
 
     private func captionSection(_ id: UUID) -> some View {
-        VStack(alignment: .leading, spacing: Theme.s) {
+        VStack(alignment: .leading, spacing: 14) {
             selectionHeader("Caption")
             TextField("Caption", text: model.captionBinding(id, \.text, fallback: ""), axis: .vertical)
                 .textFieldStyle(.roundedBorder).lineLimit(1...3)
@@ -118,12 +111,11 @@ struct SelectionInspector: View {
                 Button("−0.1s") { model.shiftCaptions(by: -0.1) }.buttonStyle(.compact)
                 Button("+0.1s") { model.shiftCaptions(by: 0.1) }.buttonStyle(.compact)
             }
-            Divider().overlay(Theme.border).padding(.vertical, Theme.xs)
         }
     }
 
     private func audioSection(_ id: UUID) -> some View {
-        VStack(alignment: .leading, spacing: Theme.s) {
+        VStack(alignment: .leading, spacing: 14) {
             selectionHeader("Audio Clip")
             SliderRow(title: "Volume", value: model.audioClipBinding(id, \.volume, fallback: 1), range: 0...2,
                       format: { "\(Int($0 * 100))%" }, onEditingEnded: model.endGesture)
@@ -132,7 +124,6 @@ struct SelectionInspector: View {
                       format: { String(format: "%.1fs", $0) }, onEditingEnded: model.endGesture)
             SliderRow(title: "Fade out", value: model.audioClipBinding(id, \.fadeOut, fallback: 0), range: 0...5,
                       format: { String(format: "%.1fs", $0) }, onEditingEnded: model.endGesture)
-            Divider().overlay(Theme.border).padding(.vertical, Theme.xs)
         }
     }
 
@@ -166,16 +157,14 @@ struct ZoomInspector: View {
 
     var body: some View {
         let event = model.zoom(id)
-        VStack(alignment: .leading, spacing: Theme.s) {
+        VStack(alignment: .leading, spacing: 14) {
             if showsHeader {
-                HStack {
-                    Text(event?.isAutomatic == true ? "Automatic Zoom" : "Zoom").font(Theme.heading).foregroundStyle(Theme.text)
-                    Spacer()
-                    IconButton(symbol: "trash", help: "Delete zoom") {
-                        model.selection = .zoom(id)
-                        model.deleteSelection()
-                    }
-                }
+                InspectorHeader(title: event?.isAutomatic == true ? "Automatic Zoom" : "Zoom",
+                                onBack: { model.selection = nil },
+                                onDelete: {
+                                    model.selection = .zoom(id)
+                                    model.deleteSelection()
+                                })
             }
             if event?.isAutomatic == true {
                 Text("Suggested from your clicks. Any change makes it a manual zoom that regeneration keeps.")
@@ -199,7 +188,46 @@ struct ZoomInspector: View {
                 Text("\(formatTime(event.startTime.seconds, showFraction: true)) – \(formatTime(event.endTime.seconds, showFraction: true))")
                     .font(Theme.mono).foregroundStyle(Theme.textSecondary)
             }
-            Divider().overlay(Theme.border).padding(.vertical, Theme.xs)
         }
+    }
+}
+
+/// Header for a selected item: Back on the left, the item's name, Delete on the right.
+struct InspectorHeader: View {
+    var title: String
+    var onBack: () -> Void
+    var onDelete: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack {
+                Button(action: onBack) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "chevron.left").font(.system(size: 11, weight: .semibold))
+                        Text("Back")
+                    }
+                    .font(.system(size: 13))
+                    .foregroundStyle(Theme.textSecondary)
+                    .padding(.horizontal, 8)
+                    .frame(height: 28)
+                    .background(RoundedRectangle(cornerRadius: 7).fill(Theme.raised))
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .help("Back to settings (Esc)")
+                Spacer()
+                Button(action: onDelete) {
+                    Image(systemName: "trash").font(.system(size: 13))
+                        .foregroundStyle(Theme.danger.opacity(0.9))
+                        .frame(width: 30, height: 28)
+                        .background(RoundedRectangle(cornerRadius: 7).fill(Theme.raised))
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .help("Delete (⌫)")
+            }
+            Text(title).font(.system(size: 17, weight: .semibold)).foregroundStyle(Theme.text)
+        }
+        .padding(.bottom, 4)
     }
 }

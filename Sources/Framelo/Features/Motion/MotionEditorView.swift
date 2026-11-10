@@ -65,7 +65,7 @@ struct MotionEditorView: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: Theme.s) {
                         if let selected, model.zoom(selected) != nil {
-                            ZoomInspector(model: model, id: selected)
+                            ZoomInspector(model: model, id: selected, showsHeader: false)
                             Button("Preview This Zoom") {
                                 if let event = model.zoom(selected) {
                                     model.seek(to: event.startTime.seconds)

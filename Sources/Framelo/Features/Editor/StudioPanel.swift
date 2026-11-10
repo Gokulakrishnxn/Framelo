@@ -40,14 +40,19 @@ struct StudioPanel: View {
         HStack(alignment: .top, spacing: 14) {
             VStack(spacing: 10) {
                 ForEach(Section.allCases) { item in
-                    RailButton(symbol: item.symbol, help: item.title, isSelected: section == item) { section = item }
+                    RailButton(symbol: item.symbol, help: item.title, isSelected: model.selection == nil && section == item) {
+                        model.selection = nil
+                        section = item
+                    }
                 }
             }
             .padding(.top, 14)
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    SelectionInspector(model: model)
+                    if model.selection != nil {
+                        SelectionInspector(model: model)
+                    } else {
                     switch section {
                     case .background: BackgroundSettings(model: model)
                     case .cursor: CursorSettings(model: model)
@@ -57,6 +62,7 @@ struct StudioPanel: View {
                     case .audio: AudioSettings(model: model)
                     case .motion: MotionSettingsPanel(model: model)
                     case .shortcuts: ShortcutList()
+                    }
                     }
                 }
                 .padding(22)
@@ -90,12 +96,11 @@ struct RailButton: View {
         Button(action: action) {
             ZStack(alignment: .trailing) {
                 Image(systemName: symbol)
-                    .font(.system(size: 17, weight: isSelected ? .semibold : .regular))
+                    .font(.system(size: 16, weight: isSelected ? .semibold : .regular))
                     .foregroundStyle(isSelected ? Color.white : Theme.textSecondary.opacity(hovering ? 1.4 : 1))
-                    .frame(width: 38, height: 38)
-                if isSelected {
-                    Circle().fill(Theme.accent).frame(width: 5, height: 5).offset(x: 6)
-                }
+                    .frame(width: 40, height: 40)
+                    .background(RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .fill(isSelected ? Theme.accent.opacity(0.9) : Color.white.opacity(hovering ? 0.06 : 0)))
             }
             .contentShape(Rectangle())
         }

@@ -124,7 +124,7 @@ struct ClipBlock: View {
             RoundedRectangle(cornerRadius: 10, style: .continuous)
                 .fill(LinearGradient(colors: [Color(hex: 0xD99A1E), Color(hex: 0xC2850F)], startPoint: .top, endPoint: .bottom))
             if width > 70 {
-                VStack(spacing: 2) {
+                VStack(alignment: .leading, spacing: 2) {
                     Text("Clip").font(.system(size: 12)).foregroundStyle(Color.white.opacity(0.55))
                     HStack(spacing: 6) {
                         Text(durationLabel).font(.system(size: 13.5, weight: .medium))
@@ -136,6 +136,8 @@ struct ClipBlock: View {
                     }
                     .foregroundStyle(.white)
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.leading, 16)
             }
             RoundedRectangle(cornerRadius: 10, style: .continuous)
                 .strokeBorder(selected ? Color.white : Color.white.opacity(0.12), lineWidth: selected ? 2 : 1)

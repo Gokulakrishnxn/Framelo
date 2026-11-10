@@ -182,11 +182,11 @@ struct SliderRow: View {
 
     var body: some View {
         HStack(spacing: Theme.s) {
-            Text(title).font(Theme.body).foregroundStyle(Theme.textSecondary).frame(width: 84, alignment: .leading)
+            Text(title).font(.system(size: 13)).foregroundStyle(Theme.textSecondary).frame(width: 92, alignment: .leading)
             Slider(value: $value, in: range) { editing in if !editing { onEditingEnded() } }
                 .controlSize(.small)
                 .tint(Theme.accent)
-            Text(format(value)).font(Theme.mono).foregroundStyle(Theme.text).frame(width: 44, alignment: .trailing)
+            Text(format(value)).font(.system(size: 12, design: .monospaced)).foregroundStyle(Theme.text).frame(width: 50, alignment: .trailing)
         }
     }
 }
@@ -197,7 +197,7 @@ struct ToggleRow: View {
 
     var body: some View {
         Toggle(isOn: $isOn) {
-            Text(title).font(Theme.body).foregroundStyle(Theme.textSecondary)
+            Text(title).font(.system(size: 13)).foregroundStyle(Theme.textSecondary)
         }
         .toggleStyle(.switch)
         .controlSize(.mini)
@@ -214,7 +214,7 @@ struct PickerRow<Value: Hashable, Content: View>: View {
 
     var body: some View {
         HStack(spacing: Theme.s) {
-            Text(title).font(Theme.body).foregroundStyle(Theme.textSecondary).frame(width: 84, alignment: .leading)
+            Text(title).font(.system(size: 13)).foregroundStyle(Theme.textSecondary).frame(width: 92, alignment: .leading)
             Picker("", selection: $selection) { content }
                 .labelsHidden()
                 .controlSize(.small)

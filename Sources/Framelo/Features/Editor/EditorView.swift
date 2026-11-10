@@ -56,7 +56,20 @@ struct EditorView: View {
         HStack(spacing: 6) {
             // Room for the window's traffic lights.
             Color.clear.frame(width: 70, height: 1)
-            TitleIcon(symbol: "folder", help: "Back to projects") { app.closeEditor() }
+            Button { app.closeEditor() } label: {
+                HStack(spacing: 5) {
+                    Image(systemName: "chevron.left").font(.system(size: 12, weight: .semibold))
+                    Text("Projects").font(.system(size: 13.5, weight: .medium))
+                }
+                .foregroundStyle(Theme.text)
+                .padding(.horizontal, 10)
+                .frame(height: 32)
+                .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(Theme.raised))
+                .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).strokeBorder(Theme.border))
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .help("Back to all projects (changes are saved automatically)")
             TitleIcon(symbol: "trash", help: "Move project to Trash") { confirmTrash = true }
             Spacer()
             ProjectNameField(model: model)
@@ -128,7 +141,7 @@ struct EditorView: View {
             } label: {
                 CanvasToolLabel(symbol: "rectangle.split.2x1", title: model.project.settings.aspect.kind.displayName, chevron: true)
             }
-            .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize()
+            .menuStyle(.button).buttonStyle(.plain).menuIndicator(.hidden).fixedSize()
             .help("Aspect ratio")
 
             Button { showCrop = true } label: {
@@ -147,15 +160,14 @@ struct EditorView: View {
             } label: {
                 HStack(spacing: 6) {
                     Image(systemName: "dial.medium")
-                    Text("Preview quality").foregroundStyle(Theme.text)
-                    Text(model.quality.title).foregroundStyle(Theme.textTertiary)
+                    Text("Preview quality ") + Text(model.quality.title).foregroundColor(Theme.textTertiary)
                     Image(systemName: "chevron.down").font(.system(size: 10, weight: .semibold))
                 }
                 .font(.system(size: 13.5))
                 .foregroundStyle(Theme.text)
                 .contentShape(Rectangle())
             }
-            .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize()
+            .menuStyle(.button).buttonStyle(.plain).menuIndicator(.hidden).fixedSize()
             .help("Lower quality keeps playback smooth on long or 4K recordings. Export always uses full quality.")
         }
         .padding(.horizontal, 40)
@@ -354,7 +366,7 @@ struct TransportBar: View {
                 } label: {
                     Text(String(format: "%g×", model.playbackRate)).font(.system(size: 13.5)).foregroundStyle(Theme.text)
                 }
-                .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize()
+                .menuStyle(.button).buttonStyle(.plain).menuIndicator(.hidden).fixedSize()
                 .help("Preview playback speed")
                 Slider(value: $model.pixelsPerSecond, in: 8...400).controlSize(.small).frame(width: 96).tint(Theme.textSecondary)
                     .help("Timeline zoom")
@@ -410,6 +422,9 @@ final class EditorKeyMonitor {
         case 51, 117:   // Delete, Forward Delete
             guard model.selection != nil else { return false }
             model.deleteSelection(); return true
+        case 53:        // Escape: back from the selected item to the settings
+            guard model.selection != nil else { return false }
+            model.selection = nil; return true
         case 49:        // Space
             model.togglePlay(); return true
         case 123:       // Left arrow
