@@ -54,7 +54,7 @@ On first use macOS asks for **Screen Recording**, **Microphone** and **Camera**.
 1. **New Recording** (⌘N): pick a display, window or region, and choose your inputs.
 2. Recording starts after the countdown. Use the floating panel, the menu bar, or **⇧⌘2** to stop and **⇧⌘P** to pause.
 3. The editor opens with zooms already suggested from your clicks.
-4. Edit on the timeline: **⌘B** split, **⌘⌫** delete, drag clip edges to trim, **⌥Z** zoom, **⌥K** keyframe, **⌥T** text, **Space** play.
+4. Edit on the timeline: **⌘B** split, **⌫** delete (or ⌘⌫), drag clip edges to trim, **⌥Z** zoom, **⌥K** keyframe, **⌥T** text, **Space** play.
 5. **Export** (⌘E).
 
 Projects live in `~/Movies/Framelo`. If a recording is interrupted (crash, power loss), Framelo recovers it at the next launch.

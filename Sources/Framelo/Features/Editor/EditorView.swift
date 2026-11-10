@@ -9,6 +9,7 @@ struct EditorView: View {
     @Bindable var model: EditorModel
     @State private var confirmTrash = false
     @State private var showCrop = false
+    @FocusState private var editorFocused: Bool
 
     var body: some View {
         VStack(spacing: 0) {
@@ -44,6 +45,18 @@ struct EditorView: View {
             Button("OK", role: .cancel) {}
         } message: {
             Text(model.errorMessage ?? "")
+        }
+        // The editor itself takes keyboard focus so shortcuts work after clicking the timeline;
+        // text fields still receive their own keys when they are being edited.
+        .focusable()
+        .focusEffectDisabled()
+        .focused($editorFocused)
+        .onAppear { editorFocused = true }
+        .onChange(of: model.selection) { _, selection in if selection != nil { editorFocused = true } }
+        .onKeyPress(keys: [.delete, .deleteForward]) { _ in
+            guard model.selection != nil else { return .ignored }
+            model.deleteSelection()
+            return .handled
         }
         .onKeyPress(.space) { model.togglePlay(); return .handled }
         .onKeyPress(.leftArrow) { model.step(frames: -1); return .handled }

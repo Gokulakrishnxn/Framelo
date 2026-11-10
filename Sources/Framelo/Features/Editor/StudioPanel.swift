@@ -659,7 +659,7 @@ struct MotionSettingsPanel: View {
 struct ShortcutList: View {
     private let items: [(String, String)] = [
         ("Play / pause", "Space"), ("Previous / next frame", "← →"), ("Split at playhead", "⌘B"),
-        ("Delete selection", "⌘⌫"), ("Add zoom", "⌥Z"), ("Add keyframe", "⌥K"), ("Add text", "⌥T"),
+        ("Delete selection", "⌫"), ("Add zoom", "⌥Z"), ("Add keyframe", "⌥K"), ("Add text", "⌥T"),
         ("Undo / redo", "⌘Z  ⇧⌘Z"), ("Export", "⌘E"), ("New recording", "⌘N"),
         ("Stop recording (anywhere)", HotKeyCenter.Shortcut.toggleRecording.display),
         ("Pause recording (anywhere)", HotKeyCenter.Shortcut.togglePause.display),
