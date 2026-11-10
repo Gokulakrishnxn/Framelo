@@ -25,7 +25,7 @@ final class RecordingWindows {
         panel.isMovableByWindowBackground = true
         panel.isReleasedWhenClosed = false
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
-        let host = NSHostingView(rootView: CaptureToolbar(controller: controller) { [weak controller] in controller?.hideToolbar() })
+        let host = FirstClickHostingView(rootView: CaptureToolbar(controller: controller) { [weak controller] in controller?.hideToolbar() })
         host.sizingOptions = [.intrinsicContentSize]
         panel.contentView = host
         panel.setContentSize(host.fittingSize)
@@ -40,6 +40,12 @@ final class RecordingWindows {
     func hideToolbar() {
         toolbar?.orderOut(nil)
         toolbar = nil
+        closeSelector()
+    }
+
+    private func closeSelector() {
+        selector?.orderOut(nil)
+        selector = nil
     }
 
     // MARK: Countdown
@@ -82,7 +88,7 @@ final class RecordingWindows {
         panel.isMovableByWindowBackground = true
         panel.isReleasedWhenClosed = false
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
-        panel.contentView = NSHostingView(rootView: RecordingHUD(controller: controller))
+        panel.contentView = FirstClickHostingView(rootView: RecordingHUD(controller: controller))
         if let screen = NSScreen.main {
             panel.setFrameOrigin(CGPoint(x: screen.visibleFrame.midX - 150, y: screen.visibleFrame.minY + 36))
         }
@@ -100,9 +106,10 @@ final class RecordingWindows {
     /// Lets the user drag a rectangle on `screen`. Calls back with the rectangle in the display's points,
     /// top-left origin, or `nil` if cancelled.
     func selectRegion(on screen: NSScreen, completion: @escaping (CGRect?) -> Void) {
+        // Only ever one selector: a second click on Area must not leave an orphaned overlay behind.
+        closeSelector()
         let window = RegionSelectorWindow(screen: screen) { [weak self] rect in
-            self?.selector?.orderOut(nil)
-            self?.selector = nil
+            self?.closeSelector()
             completion(rect)
         }
         selector = window
@@ -165,6 +172,12 @@ struct RecordingHUD: View {
 
 // MARK: Region selector
 
+/// Hosting view that acts on the first click even when its panel is not key,
+/// so toolbar buttons never need a second click.
+final class FirstClickHostingView<Content: View>: NSHostingView<Content> {
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+}
+
 /// Borderless panel that can take keyboard focus (for Return to start recording).
 final class KeyablePanel: NSPanel {
     override var canBecomeKey: Bool { true }
@@ -197,6 +210,7 @@ final class RegionSelectorView: NSView {
     required init?(coder: NSCoder) { fatalError("init(coder:) is not supported") }
 
     override var acceptsFirstResponder: Bool { true }
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
     override func viewDidMoveToWindow() { window?.makeFirstResponder(self) }
     override func resetCursorRects() { addCursorRect(bounds, cursor: .crosshair) }
 
