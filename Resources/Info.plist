@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDevelopmentRegion</key><string>en</string>
+	<key>CFBundleDisplayName</key><string>Framelo</string>
+	<key>CFBundleExecutable</key><string>Framelo</string>
+	<key>CFBundleIconFile</key><string>AppIcon</string>
+	<key>CFBundleIdentifier</key><string>app.framelo.Framelo</string>
+	<key>CFBundleInfoDictionaryVersion</key><string>6.0</string>
+	<key>CFBundleName</key><string>Framelo</string>
+	<key>CFBundlePackageType</key><string>APPL</string>
+	<key>CFBundleShortVersionString</key><string>0.1.0</string>
+	<key>CFBundleVersion</key><string>1</string>
+	<key>LSApplicationCategoryType</key><string>public.app-category.video</string>
+	<key>LSMinimumSystemVersion</key><string>14.0</string>
+	<key>NSHighResolutionCapable</key><true/>
+	<key>NSSupportsAutomaticTermination</key><false/>
+	<key>NSPrincipalClass</key><string>NSApplication</string>
+	<key>NSMicrophoneUsageDescription</key><string>Framelo records your voice alongside the screen when the microphone is turned on.</string>
+	<key>NSCameraUsageDescription</key><string>Framelo records your camera for the picture-in-picture overlay when the camera is turned on.</string>
+	<key>NSSpeechRecognitionUsageDescription</key><string>Framelo transcribes your narration into captions, on this Mac whenever possible.</string>
+	<key>NSAudioCaptureUsageDescription</key><string>Framelo records the sound your Mac plays when system audio is turned on.</string>
+</dict>
+</plist>
