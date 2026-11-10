@@ -3,6 +3,7 @@
 ```bash
 Scripts/test.sh                       # all suites
 Scripts/test.sh --filter ExportTests  # one suite
+FRAMELO_REAL_PROJECT=~/Movies/Framelo/Projects/<id>.framelo Scripts/test.sh --filter RealProjectTests  # export a real recording
 FRAMELO_TEST_OUTPUT=/some/dir Scripts/test.sh --filter RendererTests   # also writes rendered PNGs
 ```
 
