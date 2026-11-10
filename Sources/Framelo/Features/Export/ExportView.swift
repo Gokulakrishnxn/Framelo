@@ -2,7 +2,7 @@ import AppKit
 import FrameloCore
 import SwiftUI
 import UniformTypeIdentifiers
-import UserNotifications
+@preconcurrency import UserNotifications
 
 /// Export screen: settings, destination, progress, cancellation and the result.
 struct ExportView: View {
