@@ -1,10 +1,6 @@
 #!/bin/bash
-# Runs the test suite. With Command Line Tools only (no Xcode), the Swift Testing macro plugin
-# is not on the default plugin path, so it is added explicitly when present.
+# Runs the test suite. Extra arguments are passed to `swift test` (e.g. --filter ExportTests).
 set -euo pipefail
 cd "$(dirname "$0")/.."
-PLUGINS="/Library/Developer/CommandLineTools/usr/lib/swift/host/plugins/testing"
-if [ -d "$PLUGINS" ] && ! xcode-select -p | grep -q "Xcode"; then
-  exec swift test -Xswiftc -plugin-path -Xswiftc "$PLUGINS" "$@"
-fi
-exec swift test "$@"
+source Scripts/toolchain.sh
+exec swift test "${SWIFT_FLAGS[@]}" "$@"

@@ -1,7 +1,7 @@
 import AVFoundation
 import CoreGraphics
 import Foundation
-import Speech
+@preconcurrency import Speech
 
 public enum PermissionKind: String, Sendable, CaseIterable, Identifiable {
     case screenRecording, microphone, camera, speechRecognition
