@@ -111,6 +111,22 @@ struct CaptureToolbar: View {
         .frame(height: 56)
         .background(VisualEffect().clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous)))
         .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(Color.white.opacity(0.16)))
+        .overlay(alignment: .top) {
+            if let error = controller.sourceError {
+                HStack(spacing: 8) {
+                    Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(Theme.textTint)
+                    Text(error).lineLimit(2)
+                    Button("Open Settings") { NSWorkspace.shared.open(PermissionKind.screenRecording.settingsURL) }
+                    Button("Relaunch Framelo") { controller.relaunch() }
+                }
+                .font(.system(size: 11.5))
+                .foregroundStyle(.white)
+                .padding(.horizontal, 12).padding(.vertical, 8)
+                .background(RoundedRectangle(cornerRadius: 10).fill(Color.black.opacity(0.85)))
+                .fixedSize()
+                .offset(y: -46)
+            }
+        }
         .animation(.spring(response: 0.3, dampingFraction: 0.8), value: controller.target != nil)
         .preferredColorScheme(.dark)
         .task { await controller.loadSources() }
@@ -170,8 +186,11 @@ struct CaptureToolbar: View {
     private func targetButton(_ kind: RecordingController.TargetKind, title: String, symbol: String,
                               action: @escaping () -> Void) -> some View {
         Button {
-            controller.targetKind = kind
-            action()
+            Task {
+                if controller.displays.isEmpty { await controller.loadSources() }
+                controller.targetKind = kind
+                action()
+            }
         } label: {
             targetLabel(kind, title: title, symbol: symbol)
         }

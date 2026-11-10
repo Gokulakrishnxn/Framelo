@@ -85,7 +85,12 @@ final class RecordingController {
         } catch {
             displays = []
             windows = []
-            sourceError = error.localizedDescription
+            sourceError = PermissionManager.status(.screenRecording) == .granted
+                ? error.localizedDescription
+                : "Screen Recording is not allowed for this copy of Framelo. Turn it on in System Settings, then relaunch."
+        }
+        if sourceError == nil, displays.isEmpty {
+            sourceError = "No displays are available to record."
         }
     }
 
@@ -107,6 +112,16 @@ final class RecordingController {
         case .display: displays.first { $0.id == displayID }?.name ?? "Display"
         case .window: windows.first { $0.id == windowID }?.title ?? "Window"
         case .region: region.map { "Region \(Int($0.width))×\(Int($0.height))" } ?? "Region"
+        }
+    }
+
+    /// Quits and reopens Framelo — macOS applies a newly granted Screen Recording permission only to a new process.
+    func relaunch() {
+        let url = Bundle.main.bundleURL
+        let configuration = NSWorkspace.OpenConfiguration()
+        configuration.createsNewApplicationInstance = true
+        NSWorkspace.shared.openApplication(at: url, configuration: configuration) { _, _ in
+            DispatchQueue.main.async { NSApp.terminate(nil) }
         }
     }
 

@@ -26,7 +26,11 @@ fi
 cp build/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 
 echo "› Signing (ad-hoc)…"
-codesign --force --sign - --entitlements Resources/Framelo.entitlements --timestamp=none "$APP"
+# Ad-hoc signatures change with every build, and macOS ties privacy permissions to the signature.
+# Pinning the designated requirement to the bundle identifier keeps Screen Recording, Microphone and
+# Camera permissions valid across rebuilds.
+codesign --force --sign - --entitlements Resources/Framelo.entitlements --timestamp=none \
+  --requirements '=designated => identifier "app.framelo.Framelo"' "$APP"
 
 Scripts/verify-bundle.sh "$APP"
 echo "✓ Built $APP"
