@@ -1,0 +1,465 @@
+import FrameloCore
+import SwiftUI
+
+/// Multi-track timeline: ruler, screen clips, zooms, keyframes, text, captions and audio.
+struct TimelineView: View {
+    @Bindable var model: EditorModel
+    private let headerWidth: CGFloat = 112
+    private let rowHeight: CGFloat = 30
+
+    var body: some View {
+        VStack(spacing: 0) {
+            controls
+            Divider().overlay(Theme.border)
+            GeometryReader { geometry in
+                let width = max(geometry.size.width - headerWidth, CGFloat(model.duration * model.pixelsPerSecond) + 80)
+                HStack(spacing: 0) {
+                    headers
+                    ScrollView([.horizontal, .vertical]) {
+                        ZStack(alignment: .topLeading) {
+                            VStack(alignment: .leading, spacing: 4) {
+                                RulerView(model: model).frame(height: 22)
+                                ClipRow(model: model).frame(height: 46)
+                                ZoomRow(model: model).frame(height: rowHeight)
+                                MarkerRow(model: model).frame(height: rowHeight)
+                                ForEach(audioRows, id: \.kind) { row in
+                                    AudioRow(model: model, kind: row.kind).frame(height: rowHeight)
+                                }
+                            }
+                            PlayheadView(model: model)
+                        }
+                        .frame(width: width, alignment: .topLeading)
+                        .padding(.bottom, Theme.s)
+                    }
+                    .scrollIndicators(.visible)
+                }
+            }
+        }
+        .background(Theme.panel)
+    }
+
+    private struct AudioRowInfo { var kind: TimelineTrack.Kind; var name: String }
+
+    private var audioRows: [AudioRowInfo] {
+        model.project.timeline.tracks.compactMap { track in
+            switch track.type {
+            case .microphone, .systemAudio, .audio: AudioRowInfo(kind: track.type, name: track.name)
+            default: nil
+            }
+        }
+    }
+
+    private var headers: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Color.clear.frame(height: 22)
+            header("Screen", symbol: "display").frame(height: 46)
+            header("Zoom", symbol: "plus.magnifyingglass").frame(height: rowHeight)
+            header("Text & Keys", symbol: "textformat").frame(height: rowHeight)
+            ForEach(audioRows, id: \.kind) { row in
+                HStack(spacing: 4) {
+                    header(row.name, symbol: row.kind == .microphone ? "mic" : "speaker.wave.2")
+                    let muted = model.trackBinding(row.kind, \.isMuted, fallback: false)
+                    IconButton(symbol: muted.wrappedValue ? "speaker.slash.fill" : "speaker.fill",
+                               help: muted.wrappedValue ? "Unmute track" : "Mute track", isActive: muted.wrappedValue, size: 20) {
+                        muted.wrappedValue.toggle()
+                    }
+                }
+                .frame(height: rowHeight)
+            }
+            Spacer()
+        }
+        .padding(.leading, Theme.m)
+        .frame(width: headerWidth, alignment: .leading)
+    }
+
+    private func header(_ title: String, symbol: String) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: symbol).font(.system(size: 10)).foregroundStyle(Theme.textTertiary).frame(width: 14)
+            Text(title).font(Theme.caption).foregroundStyle(Theme.textSecondary).lineLimit(1)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var controls: some View {
+        HStack(spacing: Theme.xs) {
+            IconButton(symbol: "scissors", help: "Split at playhead (⌘B)") { model.splitAtPlayhead() }
+            IconButton(symbol: "trash", help: "Delete selection (⌘⌫)") { model.deleteSelection() }.disabled(model.selection == nil)
+            IconButton(symbol: "rectangle.compress.vertical", help: "Close gaps between clips") { model.closeGaps() }
+            Divider().frame(height: 16).overlay(Theme.border)
+            IconButton(symbol: "plus.magnifyingglass", help: "Add zoom at playhead (⌥Z)") { model.addZoom() }
+            IconButton(symbol: "diamond", help: "Add camera keyframe at playhead (⌥K)") { model.addKeyframe() }
+            IconButton(symbol: "textformat", help: "Add text at playhead (⌥T)") { model.addText() }
+            IconButton(symbol: "wand.and.stars", help: "Regenerate automatic zooms from clicks") { model.regenerateAutoZoom() }
+            Spacer()
+            Image(systemName: "minus.magnifyingglass").font(.system(size: 11)).foregroundStyle(Theme.textTertiary)
+            Slider(value: $model.pixelsPerSecond, in: 8...400).controlSize(.mini).frame(width: 130).help("Timeline zoom")
+            Image(systemName: "plus.magnifyingglass").font(.system(size: 11)).foregroundStyle(Theme.textTertiary)
+        }
+        .padding(.horizontal, Theme.m)
+        .frame(height: 34)
+    }
+}
+
+/// Converts between seconds and x positions in the timeline content.
+private extension EditorModel {
+    func x(_ seconds: Double) -> CGFloat { CGFloat(seconds * pixelsPerSecond) }
+    func seconds(_ x: CGFloat) -> Double { Double(x) / pixelsPerSecond }
+}
+
+struct RulerView: View {
+    var model: EditorModel
+
+    var body: some View {
+        Canvas { context, size in
+            let pps = model.pixelsPerSecond
+            let candidates: [Double] = [0.1, 0.25, 0.5, 1, 2, 5, 10, 15, 30, 60, 120, 300]
+            let step = candidates.first { $0 * pps >= 70 } ?? 600
+            var t = 0.0
+            while CGFloat(t * pps) < size.width {
+                let x = CGFloat(t * pps)
+                context.fill(Path(CGRect(x: x, y: size.height - 7, width: 1, height: 7)), with: .color(Theme.textTertiary))
+                let label = step < 1 ? String(format: "%.1fs", t) : formatTime(t)
+                context.draw(Text(label).font(.system(size: 9.5, design: .monospaced)).foregroundColor(Theme.textTertiary),
+                             at: CGPoint(x: x + 3, y: 7), anchor: .leading)
+                t += step
+            }
+        }
+        .contentShape(Rectangle())
+        .gesture(DragGesture(minimumDistance: 0).onChanged { model.seek(to: model.seconds($0.location.x)) })
+    }
+}
+
+struct PlayheadView: View {
+    var model: EditorModel
+
+    var body: some View {
+        let x = CGFloat(model.currentTime * model.pixelsPerSecond)
+        ZStack(alignment: .top) {
+            Rectangle().fill(Color.white).frame(width: 1.5)
+            Path { path in
+                path.move(to: CGPoint(x: -6, y: 0))
+                path.addLine(to: CGPoint(x: 6, y: 0))
+                path.addLine(to: CGPoint(x: 0, y: 8))
+                path.closeSubpath()
+            }
+            .fill(Color.white)
+            .frame(width: 12, height: 8)
+            .offset(x: 6)
+        }
+        .frame(maxHeight: .infinity)
+        .offset(x: x - 0.75)
+        .allowsHitTesting(false)
+    }
+}
+
+// MARK: Clips
+
+struct ClipRow: View {
+    var model: EditorModel
+
+    var body: some View {
+        ZStack(alignment: .topLeading) {
+            Color.clear.contentShape(Rectangle())
+                .onTapGesture { location in
+                    model.selection = nil
+                    model.seek(to: Double(location.x) / model.pixelsPerSecond)
+                }
+            ForEach(model.project.timeline.videoClips) { clip in
+                ClipBlock(model: model, clip: clip)
+            }
+        }
+    }
+}
+
+struct ClipBlock: View {
+    var model: EditorModel
+    var clip: VideoClip
+    @State private var trimOffset: (head: CGFloat, tail: CGFloat) = (0, 0)
+
+    private var selected: Bool { model.selection == .clip(clip.id) }
+
+    var body: some View {
+        let pps = model.pixelsPerSecond
+        let x = CGFloat(clip.timelinePosition.seconds * pps) + trimOffset.head
+        let width = max(CGFloat(clip.timelineDuration.seconds * pps) - trimOffset.head + trimOffset.tail, 6)
+        ZStack(alignment: .leading) {
+            thumbnails(width: width)
+            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                .strokeBorder(selected ? Theme.accent : Color.white.opacity(0.18), lineWidth: selected ? 2 : 1)
+            HStack(spacing: 4) {
+                if clip.playbackSpeed != 1 {
+                    Text(String(format: "%.2g×", clip.playbackSpeed)).font(.system(size: 9.5, weight: .semibold))
+                        .padding(.horizontal, 4).background(Capsule().fill(.black.opacity(0.6)))
+                }
+                if clip.isMuted { Image(systemName: "speaker.slash.fill").font(.system(size: 9)) }
+                if clip.transitionIn != nil || clip.transitionOut != nil {
+                    Image(systemName: "rectangle.portrait.on.rectangle.portrait.angled").font(.system(size: 9))
+                }
+            }
+            .foregroundStyle(.white)
+            .padding(5)
+            .frame(maxHeight: .infinity, alignment: .top)
+            handle(isHead: true).frame(maxWidth: .infinity, alignment: .leading)
+            handle(isHead: false).frame(maxWidth: .infinity, alignment: .trailing)
+        }
+        .frame(width: width, height: 46)
+        .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+        .offset(x: x)
+        .onTapGesture { model.selection = .clip(clip.id) }
+        .contextMenu {
+            Button("Split at Playhead") { model.splitAtPlayhead() }
+            Button("Move Earlier") { model.moveClip(clip.id, by: -1) }
+            Button("Move Later") { model.moveClip(clip.id, by: 1) }
+            Divider()
+            Button(clip.isMuted ? "Unmute" : "Mute") { model.clipBinding(clip.id, \.isMuted, "Mute Clip")?.wrappedValue.toggle() }
+            Button("Delete", role: .destructive) {
+                model.selection = .clip(clip.id)
+                model.deleteSelection()
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func thumbnails(width: CGFloat) -> some View {
+        let strip = model.thumbnails[clip.sourceID] ?? []
+        if strip.isEmpty {
+            LinearGradient(colors: [Theme.accent.opacity(0.55), Theme.accent.opacity(0.3)], startPoint: .top, endPoint: .bottom)
+        } else {
+            Canvas { context, size in
+                let tile = size.height * 16 / 9
+                var x: CGFloat = 0
+                while x < size.width {
+                    let timeline = clip.timelinePosition.seconds + Double(x + trimOffset.head) / model.pixelsPerSecond
+                    let source = clip.sourceTime(atTimeline: MediaTime(seconds: timeline)).seconds
+                    let nearest = strip.min { abs($0.time - source) < abs($1.time - source) }
+                    if let image = nearest?.image {
+                        context.draw(Image(decorative: image, scale: 1), in: CGRect(x: x, y: 0, width: tile, height: size.height))
+                    }
+                    x += tile
+                }
+                context.fill(Path(CGRect(origin: .zero, size: size)), with: .color(.black.opacity(0.15)))
+            }
+        }
+    }
+
+    /// Drag a clip edge to trim its in or out point.
+    private func handle(isHead: Bool) -> some View {
+        Rectangle()
+            .fill(Color.white.opacity(selected ? 0.85 : 0.001))
+            .frame(width: 6)
+            .onHover { inside in if inside { NSCursor.resizeLeftRight.push() } else { NSCursor.pop() } }
+            .gesture(DragGesture(minimumDistance: 1)
+                .onChanged { value in
+                    if isHead { trimOffset.head = value.translation.width } else { trimOffset.tail = value.translation.width }
+                }
+                .onEnded { value in
+                    let delta = MediaTime(seconds: Double(value.translation.width) / model.pixelsPerSecond).multiplied(by: clip.playbackSpeed)
+                    let duration = model.project.source(clip.sourceID).map { MediaTime(seconds: $0.duration) } ?? clip.sourceEnd
+                    if isHead {
+                        let start = min(max(clip.sourceStart + delta, .zero), clip.sourceEnd - TimelineValidator.minimumClipDuration)
+                        model.trim(clipID: clip.id, sourceStart: start)
+                    } else {
+                        let end = max(min(clip.sourceEnd + delta, duration), clip.sourceStart + TimelineValidator.minimumClipDuration)
+                        model.trim(clipID: clip.id, sourceEnd: end)
+                    }
+                    trimOffset = (0, 0)
+                })
+    }
+}
+
+// MARK: Zooms
+
+struct ZoomRow: View {
+    var model: EditorModel
+
+    var body: some View {
+        let active = Set(model.resolvedMotion.events.map(\.id))
+        ZStack(alignment: .topLeading) {
+            Color.clear.contentShape(Rectangle())
+                .onTapGesture(count: 2) { location in
+                    model.seek(to: Double(location.x) / model.pixelsPerSecond)
+                    model.addZoom()
+                }
+            ForEach(model.project.timeline.zoomEvents) { event in
+                ZoomBlock(model: model, event: event, isActive: active.contains(event.id))
+            }
+        }
+        .help("Double-click to add a zoom")
+    }
+}
+
+struct ZoomBlock: View {
+    var model: EditorModel
+    var event: ZoomEvent
+    var isActive: Bool
+    @State private var drag: (move: CGFloat, head: CGFloat, tail: CGFloat) = (0, 0, 0)
+
+    var body: some View {
+        let pps = model.pixelsPerSecond
+        let selected = model.selection == .zoom(event.id)
+        let x = CGFloat(event.startTime.seconds * pps) + drag.move + drag.head
+        let width = max(CGFloat(event.duration.seconds * pps) - drag.head + drag.tail, 8)
+        let tint = event.isAutomatic ? Theme.autoZoomTint : Theme.zoomTint
+        HStack(spacing: 4) {
+            Image(systemName: event.isAutomatic ? "wand.and.stars" : "plus.magnifyingglass").font(.system(size: 9))
+            Text(String(format: "%.1f×", event.scale)).font(.system(size: 10, weight: .semibold))
+            Spacer(minLength: 0)
+        }
+        .foregroundStyle(.white)
+        .padding(.horizontal, 6)
+        .frame(width: width, height: 24)
+        .background(RoundedRectangle(cornerRadius: 5, style: .continuous).fill(tint.opacity(isActive ? 0.75 : 0.3)))
+        .overlay(RoundedRectangle(cornerRadius: 5, style: .continuous).strokeBorder(selected ? Color.white : tint, lineWidth: selected ? 1.5 : 1))
+        .overlay(alignment: .leading) { edge(head: true) }
+        .overlay(alignment: .trailing) { edge(head: false) }
+        .offset(x: x, y: 3)
+        .help(isActive ? (event.isAutomatic ? "Automatic zoom — edit it to make it yours" : "Zoom") : "Overridden by a manual zoom or keyframes")
+        .onTapGesture { model.selection = .zoom(event.id) }
+        .gesture(DragGesture(minimumDistance: 3)
+            .onChanged { drag.move = $0.translation.width }
+            .onEnded { value in
+                let delta = MediaTime(seconds: Double(value.translation.width) / pps)
+                let start = max(.zero, event.startTime + delta)
+                let length = event.endTime - event.startTime
+                model.updateZoom(event.id, name: "Move Zoom") {
+                    $0.startTime = start
+                    $0.endTime = start + length
+                }
+                model.endGesture()
+                drag = (0, 0, 0)
+            })
+        .contextMenu {
+            Button("Delete Zoom", role: .destructive) {
+                model.selection = .zoom(event.id)
+                model.deleteSelection()
+            }
+        }
+    }
+
+    private func edge(head: Bool) -> some View {
+        Rectangle().fill(Color.white.opacity(0.001)).frame(width: 6)
+            .onHover { inside in if inside { NSCursor.resizeLeftRight.push() } else { NSCursor.pop() } }
+            .gesture(DragGesture(minimumDistance: 1)
+                .onChanged { value in if head { drag.head = value.translation.width } else { drag.tail = value.translation.width } }
+                .onEnded { value in
+                    let delta = MediaTime(seconds: Double(value.translation.width) / model.pixelsPerSecond)
+                    model.updateZoom(event.id, name: "Resize Zoom") {
+                        if head { $0.startTime = max(.zero, $0.startTime + delta) } else { $0.endTime = min($0.endTime + delta, model.project.duration) }
+                    }
+                    model.endGesture()
+                    drag = (0, 0, 0)
+                })
+    }
+}
+
+// MARK: Keyframes, text and captions
+
+struct MarkerRow: View {
+    var model: EditorModel
+
+    var body: some View {
+        let pps = model.pixelsPerSecond
+        ZStack(alignment: .topLeading) {
+            Color.clear
+            ForEach(model.project.timeline.captions) { caption in
+                let selected = model.selection == .caption(caption.id)
+                Text(caption.text).font(.system(size: 9.5)).lineLimit(1).foregroundStyle(Theme.text)
+                    .padding(.horizontal, 4)
+                    .frame(width: max(CGFloat(caption.range.duration.seconds * pps), 4), height: 11, alignment: .leading)
+                    .background(RoundedRectangle(cornerRadius: 3).fill(Color.white.opacity(selected ? 0.35 : 0.14)))
+                    .offset(x: CGFloat(caption.startTime.seconds * pps), y: 17)
+                    .onTapGesture { model.selection = .caption(caption.id) }
+            }
+            ForEach(model.project.timeline.textOverlays) { overlay in
+                let selected = model.selection == .text(overlay.id)
+                Text(overlay.text).font(.system(size: 9.5, weight: .medium)).lineLimit(1).foregroundStyle(.black)
+                    .padding(.horizontal, 4)
+                    .frame(width: max(CGFloat(overlay.range.duration.seconds * pps), 4), height: 13, alignment: .leading)
+                    .background(RoundedRectangle(cornerRadius: 3).fill(Theme.textTint.opacity(selected ? 1 : 0.75)))
+                    .offset(x: CGFloat(overlay.startTime.seconds * pps), y: 2)
+                    .onTapGesture { model.selection = .text(overlay.id) }
+            }
+            ForEach(model.project.timeline.keyframes) { keyframe in
+                let selected = model.selection == .keyframe(keyframe.id)
+                Image(systemName: "diamond.fill")
+                    .font(.system(size: 11))
+                    .foregroundStyle(selected ? Color.white : Theme.zoomTint)
+                    .offset(x: CGFloat(keyframe.timestamp.seconds * pps) - 5, y: 8)
+                    .onTapGesture {
+                        model.selection = .keyframe(keyframe.id)
+                        model.seek(to: keyframe.timestamp.seconds)
+                    }
+            }
+        }
+    }
+}
+
+// MARK: Audio
+
+struct AudioRow: View {
+    var model: EditorModel
+    var kind: TimelineTrack.Kind
+
+    var body: some View {
+        let pps = model.pixelsPerSecond
+        let track = model.project.timeline.track(kind)
+        let muted = track?.isMuted ?? false
+        ZStack(alignment: .topLeading) {
+            Color.clear
+            if kind == .audio {
+                ForEach(track?.audioClips ?? []) { clip in
+                    let selected = model.selection == .audioClip(clip.id)
+                    let path = model.project.source(clip.sourceID)?.screen?.relativePath
+                    WaveformShape(peaks: path.flatMap { model.waveforms[$0] } ?? [], start: clip.sourceStart.seconds, span: clip.duration.seconds)
+                        .fill(Theme.success.opacity(muted || clip.isMuted ? 0.25 : 0.7))
+                        .frame(width: CGFloat(clip.duration.seconds * pps), height: 24)
+                        .background(RoundedRectangle(cornerRadius: 4).fill(Theme.success.opacity(0.12)))
+                        .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(selected ? Color.white : Theme.success.opacity(0.4)))
+                        .offset(x: CGFloat(clip.timelinePosition.seconds * pps), y: 3)
+                        .onTapGesture { model.selection = .audioClip(clip.id) }
+                }
+            } else {
+                // Linked tracks follow the screen clips.
+                ForEach(model.project.timeline.videoClips) { clip in
+                    let file = model.project.source(clip.sourceID).flatMap { kind == .microphone ? $0.microphone : ($0.systemAudio ?? $0.screen) }
+                    let peaks = file.flatMap { model.waveforms[$0.relativePath] } ?? []
+                    WaveformShape(peaks: peaks, start: clip.sourceStart.seconds - (file?.startOffset ?? 0),
+                                  span: clip.sourceDuration.seconds)
+                        .fill((kind == .microphone ? Theme.zoomTint : Theme.autoZoomTint).opacity(muted || clip.isMuted ? 0.2 : 0.65))
+                        .frame(width: CGFloat(clip.timelineDuration.seconds * pps), height: 24)
+                        .background(RoundedRectangle(cornerRadius: 4).fill(Color.white.opacity(0.04)))
+                        .offset(x: CGFloat(clip.timelinePosition.seconds * pps), y: 3)
+                }
+            }
+        }
+    }
+}
+
+/// Mirrored peak waveform of the file span `[start, start + span)` seconds. `peaks` holds `rate` values per second.
+struct WaveformShape: Shape {
+    var peaks: [Float]
+    var start: Double
+    var span: Double
+    var rate: Double = 20
+
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        let columns = max(Int(rect.width / 2), 1)
+        guard !peaks.isEmpty, span > 0 else {
+            path.addRect(CGRect(x: 0, y: rect.midY - 0.5, width: rect.width, height: 1))
+            return path
+        }
+        let secondsPerColumn = span / Double(columns)
+        for column in 0..<columns {
+            let from = Int((start + Double(column) * secondsPerColumn) * rate)
+            let to = max(from + 1, Int((start + Double(column + 1) * secondsPerColumn) * rate))
+            var value: Float = 0
+            if from < peaks.count, to > 0 {
+                for index in max(from, 0)..<min(to, peaks.count) { value = max(value, peaks[index]) }
+            }
+            let height = max(1, CGFloat(value) * rect.height)
+            path.addRect(CGRect(x: CGFloat(column) * 2, y: rect.midY - height / 2, width: 1.4, height: height))
+        }
+        return path
+    }
+}
