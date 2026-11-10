@@ -28,6 +28,8 @@ enum Shaders {
         float4 pipBackground;
         float4 pipUV;          // xy uv scale (aspect fill), z mirrored
         float4 titleBar;       // rgb colour
+        float4 crop;           // xy origin, zw size of the visible part of the recording (uv)
+        float4 insetColor;     // rgb colour of the inset border
     };
 
     struct VertexOut {
@@ -60,7 +62,7 @@ enum Shaders {
 
     static float3 cardColor(float2 q, constant Uniforms &u, texture2d<float> screenTex, sampler s) {
         float titleHeight = u.blur.w;
-        if (titleHeight > 0.0 && q.y < u.content.y) {
+        if (titleHeight > 0.0 && q.y < u.card.y + titleHeight) {
             float3 c = u.titleBar.rgb;
             float radius = titleHeight * 0.17;
             float cy = u.card.y + titleHeight * 0.5;
@@ -72,7 +74,9 @@ enum Shaders {
             }
             return c;
         }
-        float2 uv = saturate((q - u.content.xy) / u.content.zw);
+        float2 local = (q - u.content.xy) / u.content.zw;
+        if (any(local < 0.0) || any(local > 1.0)) { return u.insetColor.rgb; }
+        float2 uv = u.crop.xy + saturate(local) * u.crop.zw;
         return screenTex.sample(s, uv).rgb;
     }
 

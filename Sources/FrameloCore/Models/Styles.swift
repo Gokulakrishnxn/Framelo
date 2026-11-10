@@ -82,6 +82,10 @@ public struct BackgroundStyle: Codable, Hashable, Sendable {
     public var gradientAngle: Double
     /// Absolute path of a custom image, or the wallpaper captured when chosen.
     public var imagePath: String?
+    /// Blur applied to image and desktop backgrounds, 0…1. Optional for older projects.
+    public var blur: Double?
+
+    public var blurAmount: Double { min(max(blur ?? 0, 0), 1) }
 
     public init(kind: Kind = .gradient, color: RGBAColor = RGBAColor(hex: 0x1B1B1F),
                 gradientStart: RGBAColor = RGBAColor(hex: 0x4F46E5), gradientEnd: RGBAColor = RGBAColor(hex: 0xC026D3),
@@ -89,6 +93,28 @@ public struct BackgroundStyle: Codable, Hashable, Sendable {
         self.kind = kind; self.color = color
         self.gradientStart = gradientStart; self.gradientEnd = gradientEnd
         self.gradientAngle = gradientAngle; self.imagePath = imagePath
+    }
+}
+
+/// Part of the recording to keep, normalised to the full picture (top-left origin).
+public struct CropRect: Codable, Hashable, Sendable {
+    public var x: Double
+    public var y: Double
+    public var width: Double
+    public var height: Double
+
+    public init(x: Double = 0, y: Double = 0, width: Double = 1, height: Double = 1) {
+        self.x = x; self.y = y; self.width = width; self.height = height
+    }
+
+    public static let full = CropRect()
+    public var isFull: Bool { x <= 0.0001 && y <= 0.0001 && width >= 0.9999 && height >= 0.9999 }
+
+    /// Clamped to the picture with a minimum size of 5 %.
+    public func clamped() -> CropRect {
+        let w = min(max(width, 0.05), 1)
+        let h = min(max(height, 0.05), 1)
+        return CropRect(x: min(max(x, 0), 1 - w), y: min(max(y, 0), 1 - h), width: w, height: h)
     }
 }
 
@@ -107,6 +133,13 @@ public struct ScreenStyle: Codable, Hashable, Sendable {
     /// Shadow blur as a fraction of the canvas' shorter side.
     public var shadowRadius: Double
     public var frame: Frame
+    /// Optional so projects saved before these settings existed still open.
+    public var crop: CropRect?
+    /// Border inside the card around the picture, as a fraction of the canvas' shorter side.
+    public var inset: Double?
+
+    public var effectiveCrop: CropRect { (crop ?? .full).clamped() }
+    public var insetAmount: Double { min(max(inset ?? 0, 0), 0.1) }
 
     public init(padding: Double = 0.07, cornerRadius: Double = 0.018, shadowOpacity: Double = 0.45,
                 shadowRadius: Double = 0.04, frame: Frame = .none) {

@@ -13,6 +13,8 @@ public struct FrameLayout: Sendable, Equatable {
     public var shadowRadius: CGFloat
     /// Cursor sprite box height in card pixels at size 1.
     public var cursorUnit: CGFloat
+    /// Visible part of the recording, normalised.
+    public var crop: CropRect
 
     public init(project: Project, canvas: CGSize) {
         self.canvas = canvas
@@ -34,18 +36,24 @@ public struct FrameLayout: Sendable, Equatable {
         let origin = CGPoint(x: (canvas.width - width) / 2, y: (canvas.height - height) / 2)
         card = CGRect(origin: origin, size: CGSize(width: width, height: height))
         titleBarHeight = width * barRatio
+        crop = style.effectiveCrop
+        let inset = CGFloat(style.insetAmount) * shortSide
         content = CGRect(x: origin.x, y: origin.y + titleBarHeight, width: width, height: height - titleBarHeight)
+            .insetBy(dx: inset, dy: inset)
         cornerRadius = min(CGFloat(style.cornerRadius) * shortSide, min(width, height) / 2)
         shadowRadius = CGFloat(style.shadowRadius) * shortSide
 
         // A system cursor is drawn in a 32-point box; keep that proportion relative to what was captured.
         let capturedHeight = project.sources.first(where: { $0.capture != nil })?.capture?.height ?? 1080
-        cursorUnit = content.height * 32 / CGFloat(max(capturedHeight, 1))
+        cursorUnit = content.height * 32 / (CGFloat(max(capturedHeight, 1)) * CGFloat(crop.height))
     }
 
     /// Card-space pixel of a point given in normalised content coordinates.
     public func contentPoint(x: Double, y: Double) -> CGPoint {
-        CGPoint(x: content.minX + CGFloat(x) * content.width, y: content.minY + CGFloat(y) * content.height)
+        // Points are recorded relative to the full picture; map them into the cropped part.
+        let cx = (CGFloat(x) - CGFloat(crop.x)) / CGFloat(crop.width)
+        let cy = (CGFloat(y) - CGFloat(crop.y)) / CGFloat(crop.height)
+        return CGPoint(x: content.minX + cx * content.width, y: content.minY + cy * content.height)
     }
 
     /// Camera centre in card space. At scale 1 this is the canvas centre, so an un-zoomed frame is undisturbed.
