@@ -7,6 +7,40 @@ final class RecordingWindows {
     private var countdownWindow: NSWindow?
     private var hud: NSPanel?
     private var selector: RegionSelectorWindow?
+    private var toolbar: NSPanel?
+
+    // MARK: Capture toolbar
+
+    func showToolbar(controller: RecordingController) {
+        if let toolbar {
+            toolbar.makeKeyAndOrderFront(nil)
+            return
+        }
+        let panel = KeyablePanel(contentRect: CGRect(x: 0, y: 0, width: 1060, height: 84),
+                                 styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
+        panel.isOpaque = false
+        panel.backgroundColor = .clear
+        panel.level = .floating
+        panel.hasShadow = true
+        panel.isMovableByWindowBackground = true
+        panel.isReleasedWhenClosed = false
+        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+        let host = NSHostingView(rootView: CaptureToolbar(controller: controller) { [weak controller] in controller?.hideToolbar() })
+        host.sizingOptions = [.intrinsicContentSize]
+        panel.contentView = host
+        panel.setContentSize(host.fittingSize)
+        if let screen = NSScreen.main {
+            let size = host.fittingSize
+            panel.setFrameOrigin(CGPoint(x: screen.visibleFrame.midX - size.width / 2, y: screen.visibleFrame.minY + 40))
+        }
+        panel.makeKeyAndOrderFront(nil)
+        toolbar = panel
+    }
+
+    func hideToolbar() {
+        toolbar?.orderOut(nil)
+        toolbar = nil
+    }
 
     // MARK: Countdown
 
@@ -130,6 +164,11 @@ struct RecordingHUD: View {
 }
 
 // MARK: Region selector
+
+/// Borderless panel that can take keyboard focus (for Return to start recording).
+final class KeyablePanel: NSPanel {
+    override var canBecomeKey: Bool { true }
+}
 
 final class RegionSelectorWindow: NSWindow {
     init(screen: NSScreen, completion: @escaping (CGRect?) -> Void) {
