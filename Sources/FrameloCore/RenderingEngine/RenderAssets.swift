@@ -59,53 +59,76 @@ struct Bitmap {
     }
 }
 
-/// Vector-drawn pointer sprites, so the cursor stays sharp at any size.
+/// Pointer sprites drawn from the system's own cursor artwork (vector/high-resolution representations),
+/// rendered large so they stay sharp at any zoom. Falls back to a drawn arrow if a cursor image is unavailable.
 enum CursorSprites {
     static let side = 256
 
-    /// Hot spot of each sprite, normalised to the sprite box.
-    static func hotspot(_ kind: CursorKind) -> CGPoint {
+    private struct Sprite {
+        var bitmap: Bitmap
+        var hotspot: CGPoint
+    }
+
+    private static let lock = NSLock()
+    nonisolated(unsafe) private static var cache: [CursorKind: Sprite] = [:]
+
+    private static func systemCursor(_ kind: CursorKind) -> NSCursor {
         switch kind {
-        case .arrow: CGPoint(x: 0.18, y: 0.12)
-        case .iBeam: CGPoint(x: 0.5, y: 0.5)
-        case .pointingHand: CGPoint(x: 0.36, y: 0.12)
+        case .arrow: .arrow
+        case .iBeam: .iBeam
+        case .pointingHand: .pointingHand
         }
     }
 
+    private static func sprite(_ kind: CursorKind) -> Sprite? {
+        lock.lock()
+        defer { lock.unlock() }
+        if let cached = cache[kind] { return cached }
+        let cursor = systemCursor(kind)
+        let image = cursor.image
+        let size = image.size
+        guard size.width > 0, size.height > 0 else { return nil }
+        // The sprite box is square; the cursor image is scaled to fill it by its longer side.
+        let scale = CGFloat(side) / max(size.width, size.height)
+        let drawn = CGSize(width: size.width * scale, height: size.height * scale)
+        guard let bitmap = Bitmap.draw(width: side, height: side, { context in
+            // Undo the top-left flip: AppKit draws images bottom-up.
+            context.translateBy(x: 0, y: CGFloat(side))
+            context.scaleBy(x: 1, y: -1)
+            NSGraphicsContext.saveGraphicsState()
+            NSGraphicsContext.current = NSGraphicsContext(cgContext: context, flipped: false)
+            image.draw(in: CGRect(x: 0, y: CGFloat(side) - drawn.height, width: drawn.width, height: drawn.height))
+            NSGraphicsContext.restoreGraphicsState()
+        }) else { return nil }
+        let hotspot = CGPoint(x: cursor.hotSpot.x * scale / CGFloat(side), y: cursor.hotSpot.y * scale / CGFloat(side))
+        let sprite = Sprite(bitmap: bitmap, hotspot: hotspot)
+        cache[kind] = sprite
+        return sprite
+    }
+
+    /// Hot spot of each sprite, normalised to the sprite box (top-left origin).
+    static func hotspot(_ kind: CursorKind) -> CGPoint {
+        sprite(kind)?.hotspot ?? CGPoint(x: 0.18, y: 0.12)
+    }
+
     static func bitmap(_ kind: CursorKind) -> Bitmap? {
+        sprite(kind)?.bitmap ?? fallbackArrow()
+    }
+
+    private static func fallbackArrow() -> Bitmap? {
         Bitmap.draw(width: side, height: side) { context in
             let s = CGFloat(side)
-            context.setShadow(offset: CGSize(width: 0, height: -s * 0.02), blur: s * 0.05,
-                              color: CGColor(gray: 0, alpha: 0.45))
+            let points: [(CGFloat, CGFloat)] = [(0.18, 0.12), (0.18, 0.76), (0.33, 0.62), (0.44, 0.87),
+                                                (0.55, 0.82), (0.44, 0.58), (0.65, 0.58)]
             let path = CGMutablePath()
-            switch kind {
-            case .arrow:
-                // Classic arrow, tip at the hot spot.
-                let points: [(CGFloat, CGFloat)] = [(0.18, 0.12), (0.18, 0.76), (0.33, 0.62), (0.44, 0.87),
-                                                    (0.55, 0.82), (0.44, 0.58), (0.65, 0.58)]
-                path.addLines(between: points.map { CGPoint(x: $0.0 * s, y: $0.1 * s) })
-                path.closeSubpath()
-            case .iBeam:
-                let cx = s * 0.5
-                let top = s * 0.2, bottom = s * 0.8, serif = s * 0.1, stem = s * 0.025
-                path.addRect(CGRect(x: cx - stem, y: top, width: stem * 2, height: bottom - top))
-                path.addRect(CGRect(x: cx - serif, y: top - stem, width: serif * 2, height: stem * 2))
-                path.addRect(CGRect(x: cx - serif, y: bottom - stem, width: serif * 2, height: stem * 2))
-            case .pointingHand:
-                // Simplified hand: an index finger above a rounded palm.
-                path.addRoundedRect(in: CGRect(x: s * 0.30, y: s * 0.12, width: s * 0.12, height: s * 0.46),
-                                    cornerWidth: s * 0.06, cornerHeight: s * 0.06)
-                path.addRoundedRect(in: CGRect(x: s * 0.22, y: s * 0.44, width: s * 0.48, height: s * 0.40),
-                                    cornerWidth: s * 0.12, cornerHeight: s * 0.12)
-            }
+            path.addLines(between: points.map { CGPoint(x: $0.0 * s, y: $0.1 * s) })
+            path.closeSubpath()
             context.addPath(path)
-            context.setLineJoin(.round)
             context.setLineWidth(s * 0.07)
             context.setStrokeColor(CGColor(gray: 1, alpha: 1))
             context.strokePath()
-            context.setShadow(offset: .zero, blur: 0, color: nil)
             context.addPath(path)
-            context.setFillColor(CGColor(gray: kind == .pointingHand ? 0.08 : 0, alpha: 1))
+            context.setFillColor(CGColor(gray: 0, alpha: 1))
             context.fillPath()
         }
     }
