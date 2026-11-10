@@ -355,9 +355,9 @@ final class EditorModel {
 
     // MARK: Zooms and keyframes
 
-    func addZoom() {
+    func addZoom(length: Double = 3) {
         let start = playhead
-        let end = min(start + MediaTime(seconds: 3), project.duration)
+        let end = min(start + MediaTime(seconds: max(length, 1)), project.duration)
         guard end - start >= MediaTime(seconds: 1) else { NSSound.beep(); return }
         var target = (x: 0.5, y: 0.5)
         if let position = timelineCursor.rawPosition(at: currentTime) { target = (position.x, position.y) }

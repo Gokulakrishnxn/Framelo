@@ -156,8 +156,10 @@ struct RootView: View {
             }
         }
         .animation(.easeInOut(duration: 0.25), value: app.notice)
-        .sheet(isPresented: $app.showRecordingSetup) {
-            RecordingSetupView().environment(app)
+        .onChange(of: app.showRecordingSetup) { _, show in
+            guard show else { return }
+            app.showRecordingSetup = false
+            app.recorder.showToolbar()
         }
         .alert(item: $app.alert) { info in
             Alert(title: Text(info.title), message: Text(info.message), dismissButton: .default(Text("OK")))

@@ -110,6 +110,19 @@ final class RecordingController {
         }
     }
 
+    /// Shows the floating capture toolbar and hides Framelo's own windows so the screen is clear.
+    func showToolbar() {
+        guard phase == .idle else { return }
+        hideAppWindows()
+        windowsController.showToolbar(controller: self)
+        Task { await loadSources() }
+    }
+
+    func hideToolbar() {
+        windowsController.hideToolbar()
+        if phase == .idle { restoreAppWindows() }
+    }
+
     func selectRegion() {
         guard let screen = NSScreen.screens.first(where: { $0.displayID == (displayID ?? CGMainDisplayID()) }) ?? NSScreen.main else { return }
         windowsController.selectRegion(on: screen) { [weak self] rect in
@@ -126,6 +139,7 @@ final class RecordingController {
     func beginWithCurrentSettings() {
         Task {
             if displays.isEmpty { await loadSources() }
+            if target == nil { targetKind = .display; displayID = displayID ?? displays.first?.id }
             begin()
         }
     }
@@ -150,7 +164,8 @@ final class RecordingController {
         let session = RecordingSession(config: config, name: name, store: store)
         self.session = session
 
-        hideAppWindows()
+        windowsController.hideToolbar()
+        if hiddenWindows.isEmpty { hideAppWindows() }
         countdownTask = Task {
             if countdown > 0 {
                 for remaining in stride(from: countdown, to: 0, by: -1) {

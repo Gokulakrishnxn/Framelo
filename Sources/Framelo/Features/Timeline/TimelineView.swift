@@ -1,102 +1,42 @@
 import FrameloCore
 import SwiftUI
 
-/// Multi-track timeline: ruler, screen clips, zooms, keyframes, text, captions and audio.
+/// Multi-track timeline: ruler, screen clips, zoom lane, text/keyframe markers and audio.
 struct TimelineView: View {
     @Bindable var model: EditorModel
-    private let headerWidth: CGFloat = 112
-    private let rowHeight: CGFloat = 30
 
     var body: some View {
-        VStack(spacing: 0) {
-            controls
-            Divider().overlay(Theme.border)
-            GeometryReader { geometry in
-                let width = max(geometry.size.width - headerWidth, CGFloat(model.duration * model.pixelsPerSecond) + 80)
-                HStack(spacing: 0) {
-                    headers
-                    ScrollView([.horizontal, .vertical]) {
-                        ZStack(alignment: .topLeading) {
-                            VStack(alignment: .leading, spacing: 4) {
-                                RulerView(model: model).frame(height: 22)
-                                ClipRow(model: model).frame(height: 46)
-                                ZoomRow(model: model).frame(height: rowHeight)
-                                MarkerRow(model: model).frame(height: rowHeight)
-                                ForEach(audioRows, id: \.kind) { row in
-                                    AudioRow(model: model, kind: row.kind).frame(height: rowHeight)
-                                }
-                            }
-                            PlayheadView(model: model)
+        GeometryReader { geometry in
+            let width = max(geometry.size.width - 48, CGFloat(model.duration * model.pixelsPerSecond) + 40)
+            ScrollView([.horizontal, .vertical]) {
+                ZStack(alignment: .topLeading) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        RulerView(model: model).frame(height: 34)
+                        ClipRow(model: model).frame(height: 64)
+                        ZoomRow(model: model).frame(height: 62)
+                        if hasMarkers { MarkerRow(model: model).frame(height: 30) }
+                        ForEach(audioKinds, id: \.self) { kind in
+                            AudioRow(model: model, kind: kind).frame(height: 30)
                         }
-                        .frame(width: width, alignment: .topLeading)
-                        .padding(.bottom, Theme.s)
                     }
-                    .scrollIndicators(.visible)
+                    PlayheadView(model: model)
                 }
+                .frame(width: width, alignment: .topLeading)
+                .padding(.horizontal, 24)
+                .padding(.bottom, 10)
             }
+            .scrollIndicators(.visible)
         }
-        .background(Theme.panel)
+        .background(Theme.background)
     }
 
-    private struct AudioRowInfo { var kind: TimelineTrack.Kind; var name: String }
-
-    private var audioRows: [AudioRowInfo] {
-        model.project.timeline.tracks.compactMap { track in
-            switch track.type {
-            case .microphone, .systemAudio, .audio: AudioRowInfo(kind: track.type, name: track.name)
-            default: nil
-            }
-        }
+    private var hasMarkers: Bool {
+        let timeline = model.project.timeline
+        return !timeline.textOverlays.isEmpty || !timeline.captions.isEmpty || !timeline.keyframes.isEmpty
     }
 
-    private var headers: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Color.clear.frame(height: 22)
-            header("Screen", symbol: "display").frame(height: 46)
-            header("Zoom", symbol: "plus.magnifyingglass").frame(height: rowHeight)
-            header("Text & Keys", symbol: "textformat").frame(height: rowHeight)
-            ForEach(audioRows, id: \.kind) { row in
-                HStack(spacing: 4) {
-                    header(row.name, symbol: row.kind == .microphone ? "mic" : "speaker.wave.2")
-                    let muted = model.trackBinding(row.kind, \.isMuted, fallback: false)
-                    IconButton(symbol: muted.wrappedValue ? "speaker.slash.fill" : "speaker.fill",
-                               help: muted.wrappedValue ? "Unmute track" : "Mute track", isActive: muted.wrappedValue, size: 20) {
-                        muted.wrappedValue.toggle()
-                    }
-                }
-                .frame(height: rowHeight)
-            }
-            Spacer()
-        }
-        .padding(.leading, Theme.m)
-        .frame(width: headerWidth, alignment: .leading)
-    }
-
-    private func header(_ title: String, symbol: String) -> some View {
-        HStack(spacing: 6) {
-            Image(systemName: symbol).font(.system(size: 10)).foregroundStyle(Theme.textTertiary).frame(width: 14)
-            Text(title).font(Theme.caption).foregroundStyle(Theme.textSecondary).lineLimit(1)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    private var controls: some View {
-        HStack(spacing: Theme.xs) {
-            IconButton(symbol: "scissors", help: "Split at playhead (⌘B)") { model.splitAtPlayhead() }
-            IconButton(symbol: "trash", help: "Delete selection (⌘⌫)") { model.deleteSelection() }.disabled(model.selection == nil)
-            IconButton(symbol: "rectangle.compress.vertical", help: "Close gaps between clips") { model.closeGaps() }
-            Divider().frame(height: 16).overlay(Theme.border)
-            IconButton(symbol: "plus.magnifyingglass", help: "Add zoom at playhead (⌥Z)") { model.addZoom() }
-            IconButton(symbol: "diamond", help: "Add camera keyframe at playhead (⌥K)") { model.addKeyframe() }
-            IconButton(symbol: "textformat", help: "Add text at playhead (⌥T)") { model.addText() }
-            IconButton(symbol: "wand.and.stars", help: "Regenerate automatic zooms from clicks") { model.regenerateAutoZoom() }
-            Spacer()
-            Image(systemName: "minus.magnifyingglass").font(.system(size: 11)).foregroundStyle(Theme.textTertiary)
-            Slider(value: $model.pixelsPerSecond, in: 8...400).controlSize(.mini).frame(width: 130).help("Timeline zoom")
-            Image(systemName: "plus.magnifyingglass").font(.system(size: 11)).foregroundStyle(Theme.textTertiary)
-        }
-        .padding(.horizontal, Theme.m)
-        .frame(height: 34)
+    private var audioKinds: [TimelineTrack.Kind] {
+        model.project.timeline.tracks.map(\.type).filter { [.microphone, .systemAudio, .audio].contains($0) }
     }
 }
 
@@ -112,15 +52,21 @@ struct RulerView: View {
     var body: some View {
         Canvas { context, size in
             let pps = model.pixelsPerSecond
-            let candidates: [Double] = [0.1, 0.25, 0.5, 1, 2, 5, 10, 15, 30, 60, 120, 300]
-            let step = candidates.first { $0 * pps >= 70 } ?? 600
+            let candidates: [Double] = [0.25, 0.5, 1, 2, 5, 10, 15, 30, 60, 120, 300]
+            let step = candidates.first { $0 * pps >= 120 } ?? 600
             var t = 0.0
-            while CGFloat(t * pps) < size.width {
+            while CGFloat(t * pps) <= size.width {
                 let x = CGFloat(t * pps)
-                context.fill(Path(CGRect(x: x, y: size.height - 7, width: 1, height: 7)), with: .color(Theme.textTertiary))
-                let label = step < 1 ? String(format: "%.1fs", t) : formatTime(t)
-                context.draw(Text(label).font(.system(size: 9.5, design: .monospaced)).foregroundColor(Theme.textTertiary),
-                             at: CGPoint(x: x + 3, y: 7), anchor: .leading)
+                if t > 0 {
+                    let label = step < 1 ? String(format: "%.2f", t) : formatTime(t).replacingOccurrences(of: "00:", with: "0:")
+                    context.draw(Text(label).font(.system(size: 12, design: .monospaced)).foregroundColor(Theme.textSecondary),
+                                 at: CGPoint(x: x, y: 10))
+                }
+                for quarter in 0..<4 {
+                    let dot = x + CGFloat(Double(quarter) * step / 4 * pps)
+                    context.fill(Path(ellipseIn: CGRect(x: dot - 1.5, y: 25, width: 3, height: 3)),
+                                 with: .color(Theme.textTertiary))
+                }
                 t += step
             }
         }
@@ -135,19 +81,11 @@ struct PlayheadView: View {
     var body: some View {
         let x = CGFloat(model.currentTime * model.pixelsPerSecond)
         ZStack(alignment: .top) {
-            Rectangle().fill(Color.white).frame(width: 1.5)
-            Path { path in
-                path.move(to: CGPoint(x: -6, y: 0))
-                path.addLine(to: CGPoint(x: 6, y: 0))
-                path.addLine(to: CGPoint(x: 0, y: 8))
-                path.closeSubpath()
-            }
-            .fill(Color.white)
-            .frame(width: 12, height: 8)
-            .offset(x: 6)
+            Rectangle().fill(Theme.accent).frame(width: 2)
+            Circle().fill(Theme.accent).frame(width: 13, height: 13).offset(x: 0, y: -2)
         }
         .frame(maxHeight: .infinity)
-        .offset(x: x - 0.75)
+        .offset(x: x - 1)
         .allowsHitTesting(false)
     }
 }
@@ -182,28 +120,32 @@ struct ClipBlock: View {
         let pps = model.pixelsPerSecond
         let x = CGFloat(clip.timelinePosition.seconds * pps) + trimOffset.head
         let width = max(CGFloat(clip.timelineDuration.seconds * pps) - trimOffset.head + trimOffset.tail, 6)
-        ZStack(alignment: .leading) {
-            thumbnails(width: width)
-            RoundedRectangle(cornerRadius: 6, style: .continuous)
-                .strokeBorder(selected ? Theme.accent : Color.white.opacity(0.18), lineWidth: selected ? 2 : 1)
-            HStack(spacing: 4) {
-                if clip.playbackSpeed != 1 {
-                    Text(String(format: "%.2g×", clip.playbackSpeed)).font(.system(size: 9.5, weight: .semibold))
-                        .padding(.horizontal, 4).background(Capsule().fill(.black.opacity(0.6)))
-                }
-                if clip.isMuted { Image(systemName: "speaker.slash.fill").font(.system(size: 9)) }
-                if clip.transitionIn != nil || clip.transitionOut != nil {
-                    Image(systemName: "rectangle.portrait.on.rectangle.portrait.angled").font(.system(size: 9))
+        ZStack {
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(LinearGradient(colors: [Color(hex: 0xD99A1E), Color(hex: 0xC2850F)], startPoint: .top, endPoint: .bottom))
+            if width > 70 {
+                VStack(spacing: 2) {
+                    Text("Clip").font(.system(size: 12)).foregroundStyle(Color.white.opacity(0.55))
+                    HStack(spacing: 6) {
+                        Text(durationLabel).font(.system(size: 13.5, weight: .medium))
+                        HStack(spacing: 2) {
+                            Image(systemName: "gauge.with.dots.needle.33percent").font(.system(size: 11))
+                            Text(String(format: "%g×", clip.playbackSpeed)).font(.system(size: 13.5, weight: .medium))
+                        }
+                        if clip.isMuted { Image(systemName: "speaker.slash.fill").font(.system(size: 11)) }
+                    }
+                    .foregroundStyle(.white)
                 }
             }
-            .foregroundStyle(.white)
-            .padding(5)
-            .frame(maxHeight: .infinity, alignment: .top)
-            handle(isHead: true).frame(maxWidth: .infinity, alignment: .leading)
-            handle(isHead: false).frame(maxWidth: .infinity, alignment: .trailing)
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .strokeBorder(selected ? Color.white : Color.white.opacity(0.12), lineWidth: selected ? 2 : 1)
+            HStack {
+                handle(isHead: true)
+                Spacer(minLength: 0)
+                handle(isHead: false)
+            }
         }
-        .frame(width: width, height: 46)
-        .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+        .frame(width: width, height: 64)
         .offset(x: x)
         .onTapGesture { model.selection = .clip(clip.id) }
         .contextMenu {
@@ -217,6 +159,11 @@ struct ClipBlock: View {
                 model.deleteSelection()
             }
         }
+    }
+
+    private var durationLabel: String {
+        let seconds = clip.timelineDuration.seconds
+        return seconds < 60 ? String(format: "%.0fs", seconds.rounded()) : formatTime(seconds)
     }
 
     @ViewBuilder
@@ -245,8 +192,10 @@ struct ClipBlock: View {
     /// Drag a clip edge to trim its in or out point.
     private func handle(isHead: Bool) -> some View {
         Rectangle()
-            .fill(Color.white.opacity(selected ? 0.85 : 0.001))
-            .frame(width: 6)
+            .fill(Color.white.opacity(selected ? 0.9 : 0.001))
+            .frame(width: 7)
+            .clipShape(Capsule())
+            .padding(.vertical, 14)
             .onHover { inside in if inside { NSCursor.resizeLeftRight.push() } else { NSCursor.pop() } }
             .gesture(DragGesture(minimumDistance: 1)
                 .onChanged { value in
@@ -269,22 +218,41 @@ struct ClipBlock: View {
 
 // MARK: Zooms
 
+/// Lane for zoom events. Click to add a zoom on the cursor, or drag across a range to add one that long.
 struct ZoomRow: View {
     var model: EditorModel
+    @State private var draft: (start: CGFloat, end: CGFloat)?
 
     var body: some View {
         let active = Set(model.resolvedMotion.events.map(\.id))
         ZStack(alignment: .topLeading) {
-            Color.clear.contentShape(Rectangle())
-                .onTapGesture(count: 2) { location in
-                    model.seek(to: Double(location.x) / model.pixelsPerSecond)
-                    model.addZoom()
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(Color(hex: 0x1E1B3A))
+                .overlay {
+                    if model.project.timeline.zoomEvents.isEmpty {
+                        Text("Click or drag to add zoom on cursor").font(.system(size: 13.5)).foregroundStyle(Theme.textSecondary)
+                    }
                 }
+                .contentShape(Rectangle())
+                .gesture(DragGesture(minimumDistance: 0)
+                    .onChanged { value in draft = (value.startLocation.x, value.location.x) }
+                    .onEnded { value in
+                        let a = model.seconds(min(value.startLocation.x, value.location.x))
+                        let b = model.seconds(max(value.startLocation.x, value.location.x))
+                        draft = nil
+                        model.seek(to: a)
+                        if b - a >= 0.5 { model.addZoom(length: b - a) } else { model.addZoom() }
+                    })
+            if let draft {
+                RoundedRectangle(cornerRadius: 8).fill(Theme.accent.opacity(0.4))
+                    .frame(width: abs(draft.end - draft.start), height: 46)
+                    .offset(x: min(draft.start, draft.end), y: 8)
+                    .allowsHitTesting(false)
+            }
             ForEach(model.project.timeline.zoomEvents) { event in
                 ZoomBlock(model: model, event: event, isActive: active.contains(event.id))
             }
         }
-        .help("Double-click to add a zoom")
     }
 }
 
@@ -299,20 +267,21 @@ struct ZoomBlock: View {
         let selected = model.selection == .zoom(event.id)
         let x = CGFloat(event.startTime.seconds * pps) + drag.move + drag.head
         let width = max(CGFloat(event.duration.seconds * pps) - drag.head + drag.tail, 8)
-        let tint = event.isAutomatic ? Theme.autoZoomTint : Theme.zoomTint
+        let tint = event.isAutomatic ? Theme.accent.opacity(0.85) : Theme.accent
         HStack(spacing: 4) {
             Image(systemName: event.isAutomatic ? "wand.and.stars" : "plus.magnifyingglass").font(.system(size: 9))
-            Text(String(format: "%.1f×", event.scale)).font(.system(size: 10, weight: .semibold))
+            Text(String(format: "%.1f×", event.scale)).font(.system(size: 12, weight: .semibold))
+            if width > 110 { Text(event.isAutomatic ? "Auto" : "Zoom").font(.system(size: 11)).opacity(0.7) }
             Spacer(minLength: 0)
         }
         .foregroundStyle(.white)
         .padding(.horizontal, 6)
-        .frame(width: width, height: 24)
-        .background(RoundedRectangle(cornerRadius: 5, style: .continuous).fill(tint.opacity(isActive ? 0.75 : 0.3)))
-        .overlay(RoundedRectangle(cornerRadius: 5, style: .continuous).strokeBorder(selected ? Color.white : tint, lineWidth: selected ? 1.5 : 1))
+        .frame(width: width, height: 46)
+        .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(tint.opacity(isActive ? 0.8 : 0.3)))
+        .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).strokeBorder(selected ? Color.white : tint, lineWidth: selected ? 2 : 1))
         .overlay(alignment: .leading) { edge(head: true) }
         .overlay(alignment: .trailing) { edge(head: false) }
-        .offset(x: x, y: 3)
+        .offset(x: x, y: 8)
         .help(isActive ? (event.isAutomatic ? "Automatic zoom — edit it to make it yours" : "Zoom") : "Overridden by a manual zoom or keyframes")
         .onTapGesture { model.selection = .zoom(event.id) }
         .gesture(DragGesture(minimumDistance: 3)

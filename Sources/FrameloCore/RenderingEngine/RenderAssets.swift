@@ -2,6 +2,7 @@ import AppKit
 import CoreGraphics
 import CoreText
 import Foundation
+import CoreImage
 import ImageIO
 
 /// A bitmap with premultiplied alpha, ready to upload as a BGRA texture.
@@ -41,9 +42,19 @@ struct Bitmap {
         }
     }
 
-    static func file(_ path: String) -> Bitmap? {
+    /// Loads an image file, downscaled to at most 2560 px, optionally blurred (`blur` 0…1).
+    static func file(_ path: String, blur: Double = 0) -> Bitmap? {
+        let options: [CFString: Any] = [kCGImageSourceCreateThumbnailFromImageAlways: true,
+                                        kCGImageSourceThumbnailMaxPixelSize: 2560,
+                                        kCGImageSourceCreateThumbnailWithTransform: true]
         guard let source = CGImageSourceCreateWithURL(URL(fileURLWithPath: path) as CFURL, nil),
-              let image = CGImageSourceCreateImageAtIndex(source, 0, nil) else { return nil }
+              var image = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary) else { return nil }
+        if blur > 0 {
+            let input = CIImage(cgImage: image)
+            let radius = blur * Double(max(image.width, image.height)) * 0.02
+            let blurred = input.clampedToExtent().applyingGaussianBlur(sigma: radius).cropped(to: input.extent)
+            if let output = CIContext().createCGImage(blurred, from: input.extent) { image = output }
+        }
         return Bitmap.image(image)
     }
 }

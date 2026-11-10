@@ -63,6 +63,23 @@ final class AppState {
         let remaining = Self.splashDuration - (ContinuousClock.now - started)
         if remaining > .zero { try? await Task.sleep(for: remaining) }
         withAnimation(.easeInOut(duration: 0.45)) { route = .dashboard }
+        // `Framelo --import <video>` opens a video straight into the editor (handy for scripting and testing).
+        let arguments = CommandLine.arguments
+        if let index = arguments.firstIndex(of: "--import"), index + 1 < arguments.count {
+            await importVideo(at: URL(fileURLWithPath: arguments[index + 1]))
+        }
+    }
+
+    func importVideo(at url: URL) async {
+        isBusy = true
+        defer { isBusy = false }
+        do {
+            let project = try await MediaImporter.importVideo(url, store: store)
+            await refresh()
+            await openEditor(project)
+        } catch {
+            alert = AlertInfo(title: "Could not import video", message: error.localizedDescription)
+        }
     }
 
     func refresh() async {
@@ -141,17 +158,7 @@ final class AppState {
         panel.allowsMultipleSelection = false
         panel.message = "Choose a video to edit. The original file is never modified."
         guard panel.runModal() == .OK, let url = panel.url else { return }
-        isBusy = true
-        Task {
-            defer { isBusy = false }
-            do {
-                let project = try await MediaImporter.importVideo(url, store: store)
-                await refresh()
-                await openEditor(project)
-            } catch {
-                alert = AlertInfo(title: "Could not import video", message: error.localizedDescription)
-            }
-        }
+        Task { await importVideo(at: url) }
     }
 
     func trash(_ id: UUID) {

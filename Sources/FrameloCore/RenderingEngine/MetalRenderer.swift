@@ -42,6 +42,8 @@ struct FrameUniforms {
     var pipBackground = SIMD4<Float>()
     var pipUV = SIMD4<Float>(1, 1, 0, 0)
     var titleBar = SIMD4<Float>(0.16, 0.16, 0.18, 1)
+    var crop = SIMD4<Float>(0, 0, 1, 1)
+    var insetColor = SIMD4<Float>(0.11, 0.11, 0.12, 1)
 }
 
 struct QuadUniforms {
@@ -246,7 +248,9 @@ public final class MetalRenderer {
             uniforms.bgParams = SIMD4(1, Float(cos(angle) / norm), Float(sin(angle) / norm), 0)
         case .image, .wallpaper:
             uniforms.bgA = background.color.simd
-            if let path = background.imagePath, let image = staticTexture("bg:" + path, { Bitmap.file(path) }) {
+            let blur = background.blurAmount
+            if let path = background.imagePath,
+               let image = staticTexture("bg:\(path):\(Int(blur * 100))", { Bitmap.file(path, blur: blur) }) {
                 backgroundTexture = image
                 let imageAspect = Float(image.width) / Float(image.height)
                 let canvasAspect = Float(canvas.width / canvas.height)
@@ -265,6 +269,7 @@ public final class MetalRenderer {
             let scale = state.camera.scale * screenState.transitionScale
             let centre = layout.cameraCentre(state.camera)
             uniforms.card = SIMD4(Float(layout.card.minX), Float(layout.card.minY), Float(layout.card.width), Float(layout.card.height))
+            uniforms.crop = SIMD4(Float(layout.crop.x), Float(layout.crop.y), Float(layout.crop.width), Float(layout.crop.height))
             uniforms.content = SIMD4(Float(layout.content.minX), Float(layout.content.minY),
                                      Float(layout.content.width), Float(layout.content.height))
             uniforms.cam = SIMD4(Float(centre.x), Float(centre.y), Float(scale), Float(screenState.opacity))

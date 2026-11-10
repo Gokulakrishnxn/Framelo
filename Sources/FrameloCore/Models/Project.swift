@@ -100,7 +100,8 @@ public struct Project: Codable, Hashable, Sendable, Identifiable {
     /// Width / height of the primary source's picture.
     public var sourceAspect: Double {
         guard let file = sources.first(where: { $0.screen != nil })?.screen, file.pixelHeight > 0 else { return 16.0 / 9.0 }
-        return Double(file.pixelWidth) / Double(file.pixelHeight)
+        let crop = settings.screen.effectiveCrop
+        return Double(file.pixelWidth) * crop.width / (Double(file.pixelHeight) * crop.height)
     }
 
     public var canvasAspect: Double { settings.aspect.value(sourceRatio: sourceAspect) }
