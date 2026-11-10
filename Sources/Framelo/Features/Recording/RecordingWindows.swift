@@ -16,7 +16,7 @@ final class RecordingWindows {
             toolbar.makeKeyAndOrderFront(nil)
             return
         }
-        let panel = KeyablePanel(contentRect: CGRect(x: 0, y: 0, width: 1060, height: 84),
+        let panel = KeyablePanel(contentRect: CGRect(x: 0, y: 0, width: 720, height: 56),
                                  styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
         panel.isOpaque = false
         panel.backgroundColor = .clear

@@ -10,16 +10,23 @@ struct CaptureToolbar: View {
 
     var body: some View {
         HStack(spacing: 0) {
+            Image(systemName: "line.3.horizontal")
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(Color.white.opacity(0.4))
+                .frame(width: 22, height: 40)
+                .overlay(WindowDragArea())
+                .help("Drag to move")
             Button(action: onClose) {
                 Image(systemName: "xmark")
-                    .font(.system(size: 13, weight: .bold))
+                    .font(.system(size: 9, weight: .bold))
                     .foregroundStyle(.black)
-                    .frame(width: 30, height: 30)
+                    .frame(width: 20, height: 20)
                     .background(Circle().fill(.white))
             }
             .buttonStyle(.plain)
             .help("Close")
-            .padding(.horizontal, 22)
+            .padding(.leading, 6)
+            .padding(.trailing, 12)
 
             separator
 
@@ -28,11 +35,11 @@ struct CaptureToolbar: View {
                 windowButton
                 targetButton(.region, title: "Area", symbol: "rectangle.dashed") { controller.selectRegion() }
             }
-            .padding(.horizontal, 10)
+            .padding(.horizontal, 6)
 
             separator
 
-            HStack(spacing: 6) {
+            HStack(spacing: 2) {
                 deviceMenu(symbol: controller.captureCamera ? "video" : "video.slash",
                            title: controller.captureCamera ? deviceName(controller.cameraID, in: controller.cameras, fallback: "Camera") : "No camera") {
                     Button("No camera") { controller.captureCamera = false }
@@ -69,11 +76,11 @@ struct CaptureToolbar: View {
                 .buttonStyle(.plain)
                 .help("Record the sound your Mac plays")
             }
-            .padding(.horizontal, 10)
+            .padding(.horizontal, 6)
 
             separator
 
-            HStack(spacing: 4) {
+            HStack(spacing: 2) {
                 ToolbarIcon(symbol: "folder", help: "Open recordings folder") {
                     NSWorkspace.shared.open(LibraryLocation.standard.root)
                 }
@@ -83,12 +90,12 @@ struct CaptureToolbar: View {
                         controller.begin()
                     } label: {
                         HStack(spacing: 6) {
-                            Circle().fill(.white).frame(width: 9, height: 9)
-                            Text("Record").font(.system(size: 13, weight: .semibold))
+                            Circle().fill(.white).frame(width: 7, height: 7)
+                            Text("Record").font(.system(size: 11.5, weight: .semibold))
                         }
                         .foregroundStyle(.white)
-                        .padding(.horizontal, 14)
-                        .frame(height: 34)
+                        .padding(.horizontal, 11)
+                        .frame(height: 28)
                         .background(Capsule().fill(Theme.danger))
                     }
                     .buttonStyle(.plain)
@@ -98,18 +105,20 @@ struct CaptureToolbar: View {
                     .transition(.scale.combined(with: .opacity))
                 }
             }
-            .padding(.horizontal, 14)
+            .padding(.horizontal, 8)
         }
-        .frame(height: 84)
-        .background(VisualEffect().clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous)))
-        .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).strokeBorder(Color.white.opacity(0.16)))
+        .padding(.leading, 4)
+        .frame(height: 56)
+        .background(WindowDragArea())
+        .background(VisualEffect().clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous)))
+        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(Color.white.opacity(0.16)))
         .animation(.spring(response: 0.3, dampingFraction: 0.8), value: controller.target != nil)
         .preferredColorScheme(.dark)
         .task { await controller.loadSources() }
     }
 
     private var separator: some View {
-        Rectangle().fill(Color.white.opacity(0.14)).frame(width: 1, height: 52)
+        Rectangle().fill(Color.white.opacity(0.14)).frame(width: 1, height: 32)
     }
 
     private var displayButton: some View {
@@ -125,7 +134,8 @@ struct CaptureToolbar: View {
                 } label: {
                     targetLabel(.display, title: "Display", symbol: "menubar.dock.rectangle")
                 }
-                .menuStyle(.borderlessButton)
+                .menuStyle(.button)
+                .buttonStyle(.plain)
                 .menuIndicator(.hidden)
                 .fixedSize()
             } else {
@@ -151,7 +161,8 @@ struct CaptureToolbar: View {
         } label: {
             targetLabel(.window, title: "Window", symbol: "macwindow")
         }
-        .menuStyle(.borderlessButton)
+        .menuStyle(.button)
+        .buttonStyle(.plain)
         .menuIndicator(.hidden)
         .fixedSize()
         .help("Record one window")
@@ -170,13 +181,13 @@ struct CaptureToolbar: View {
 
     private func targetLabel(_ kind: RecordingController.TargetKind, title: String, symbol: String) -> some View {
         let selected = controller.targetKind == kind && controller.target != nil
-        return VStack(spacing: 5) {
-            Image(systemName: symbol).font(.system(size: 22, weight: .regular))
-            Text(title).font(.system(size: 11.5, weight: .medium))
+        return VStack(spacing: 3) {
+            Image(systemName: symbol).font(.system(size: 15, weight: .regular))
+            Text(title).font(.system(size: 9.5, weight: .medium))
         }
         .foregroundStyle(selected ? Color.white : Color.white.opacity(0.72))
-        .frame(width: 76, height: 64)
-        .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Color.white.opacity(selected ? 0.16 : 0)))
+        .frame(width: 52, height: 44)
+        .background(RoundedRectangle(cornerRadius: 9, style: .continuous).fill(Color.white.opacity(selected ? 0.16 : 0)))
         .contentShape(Rectangle())
     }
 
@@ -184,20 +195,21 @@ struct CaptureToolbar: View {
         Menu(content: content) {
             pill(symbol: symbol, title: title, active: !title.hasPrefix("No "))
         }
-        .menuStyle(.borderlessButton)
+        .menuStyle(.button)
+        .buttonStyle(.plain)
         .menuIndicator(.hidden)
         .fixedSize()
     }
 
     private func pill(symbol: String, title: String, active: Bool) -> some View {
-        HStack(spacing: 8) {
-            Image(systemName: symbol).font(.system(size: 17))
-            Text(title).font(.system(size: 14)).lineLimit(1)
+        HStack(spacing: 5) {
+            Image(systemName: symbol).font(.system(size: 12))
+            Text(title).font(.system(size: 11.5)).lineLimit(1)
         }
         .foregroundStyle(active ? Color.white : Color.white.opacity(0.55))
-        .padding(.horizontal, 12)
-        .frame(height: 40)
-        .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Color.white.opacity(active ? 0.1 : 0)))
+        .padding(.horizontal, 8)
+        .frame(height: 28)
+        .background(RoundedRectangle(cornerRadius: 7, style: .continuous).fill(Color.white.opacity(active ? 0.1 : 0)))
         .contentShape(Rectangle())
     }
 
@@ -221,14 +233,15 @@ struct CaptureToolbar: View {
             Text("Stop \(HotKeyCenter.Shortcut.toggleRecording.display) · Pause \(HotKeyCenter.Shortcut.togglePause.display)")
         } label: {
             HStack(spacing: 4) {
-                Image(systemName: "gearshape").font(.system(size: 19))
-                Image(systemName: "chevron.down").font(.system(size: 10, weight: .semibold))
+                Image(systemName: "gearshape").font(.system(size: 14))
+                Image(systemName: "chevron.down").font(.system(size: 8, weight: .semibold))
             }
             .foregroundStyle(Color.white.opacity(0.8))
-            .frame(width: 52, height: 40)
+            .frame(width: 40, height: 30)
             .contentShape(Rectangle())
         }
-        .menuStyle(.borderlessButton)
+        .menuStyle(.button)
+        .buttonStyle(.plain)
         .menuIndicator(.hidden)
         .fixedSize()
         .help("Recording settings")
@@ -248,10 +261,10 @@ struct ToolbarIcon: View {
     var body: some View {
         Button(action: action) {
             Image(systemName: symbol)
-                .font(.system(size: 19))
+                .font(.system(size: 14))
                 .foregroundStyle(Color.white.opacity(hovering ? 1 : 0.8))
-                .frame(width: 42, height: 40)
-                .background(RoundedRectangle(cornerRadius: 10).fill(Color.white.opacity(hovering ? 0.1 : 0)))
+                .frame(width: 32, height: 30)
+                .background(RoundedRectangle(cornerRadius: 7).fill(Color.white.opacity(hovering ? 0.1 : 0)))
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -274,5 +287,16 @@ struct VisualEffect: NSViewRepresentable {
 
     func updateNSView(_ view: NSVisualEffectView, context: Context) {
         view.material = material
+    }
+}
+
+/// Lets the user drag the borderless panel by any empty part of it.
+struct WindowDragArea: NSViewRepresentable {
+    func makeNSView(context: Context) -> NSView { DragView() }
+    func updateNSView(_ nsView: NSView, context: Context) {}
+
+    final class DragView: NSView {
+        override func mouseDown(with event: NSEvent) { window?.performDrag(with: event) }
+        override func resetCursorRects() { addCursorRect(bounds, cursor: .openHand) }
     }
 }
