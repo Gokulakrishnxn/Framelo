@@ -13,7 +13,7 @@ struct CaptureToolbar: View {
             Image(systemName: "line.3.horizontal")
                 .font(.system(size: 11, weight: .semibold))
                 .foregroundStyle(Color.white.opacity(0.4))
-                .frame(width: 22, height: 40)
+                .frame(width: 26, height: 44)
                 .overlay(WindowDragArea())
                 .help("Drag to move")
             Button(action: onClose) {
@@ -109,7 +109,6 @@ struct CaptureToolbar: View {
         }
         .padding(.leading, 4)
         .frame(height: 56)
-        .background(WindowDragArea())
         .background(VisualEffect().clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous)))
         .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(Color.white.opacity(0.16)))
         .animation(.spring(response: 0.3, dampingFraction: 0.8), value: controller.target != nil)
@@ -290,7 +289,7 @@ struct VisualEffect: NSViewRepresentable {
     }
 }
 
-/// Lets the user drag the borderless panel by any empty part of it.
+/// Drag handle for the borderless panel. Used only on the grip so it never covers the buttons.
 struct WindowDragArea: NSViewRepresentable {
     func makeNSView(context: Context) -> NSView { DragView() }
     func updateNSView(_ nsView: NSView, context: Context) {}
