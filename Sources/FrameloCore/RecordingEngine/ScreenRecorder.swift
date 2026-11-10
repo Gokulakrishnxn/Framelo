@@ -40,7 +40,11 @@ final class ScreenRecorder: NSObject, SCStreamOutput, SCStreamDelegate, @uncheck
     func prepare(config: RecordingConfig, videoURL: URL, audioURL: URL?) async throws -> Prepared {
         let content = try await CaptureCatalog.shareableContent()
         let ownPID = ProcessInfo.processInfo.processIdentifier
-        let ownApps = content.applications.filter { $0.processID == ownPID }
+        // Framelo's own windows are hidden while recording, so an on-screen-only listing omits Framelo and the
+        // exclusion would match nothing. Look the app up in the full listing so its floating controls,
+        // countdown and selector are never captured.
+        let allContent = (try? await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: false)) ?? content
+        let ownApps = allContent.applications.filter { $0.processID == ownPID }
 
         let filter: SCContentFilter
         let streamConfig = SCStreamConfiguration()

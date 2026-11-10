@@ -25,6 +25,7 @@ final class RecordingWindows {
         panel.isMovableByWindowBackground = true
         panel.isReleasedWhenClosed = false
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+        panel.sharingType = .none
         let host = FirstClickHostingView(rootView: CaptureToolbar(controller: controller) { [weak controller] in controller?.hideToolbar() })
         host.sizingOptions = [.intrinsicContentSize]
         panel.contentView = host
@@ -73,6 +74,7 @@ final class RecordingWindows {
         window.ignoresMouseEvents = true
         window.hasShadow = false
         window.isReleasedWhenClosed = false
+        window.sharingType = .none
         return window
     }
 
@@ -88,6 +90,8 @@ final class RecordingWindows {
         panel.isMovableByWindowBackground = true
         panel.isReleasedWhenClosed = false
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+        // Belt and braces: never let screen capture see the controls.
+        panel.sharingType = .none
         panel.contentView = FirstClickHostingView(rootView: RecordingHUD(controller: controller))
         if let screen = NSScreen.main {
             panel.setFrameOrigin(CGPoint(x: screen.visibleFrame.midX - 150, y: screen.visibleFrame.minY + 36))
@@ -190,6 +194,7 @@ final class RegionSelectorWindow: NSWindow {
         backgroundColor = .clear
         level = .screenSaver
         isReleasedWhenClosed = false
+        sharingType = .none
         contentView = RegionSelectorView(frame: CGRect(origin: .zero, size: screen.frame.size), completion: completion)
     }
 
