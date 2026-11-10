@@ -9,7 +9,7 @@ struct EditorView: View {
     @Bindable var model: EditorModel
     @State private var confirmTrash = false
     @State private var showCrop = false
-    @FocusState private var editorFocused: Bool
+    @State private var keyMonitor = EditorKeyMonitor()
 
     var body: some View {
         VStack(spacing: 0) {
@@ -46,21 +46,8 @@ struct EditorView: View {
         } message: {
             Text(model.errorMessage ?? "")
         }
-        // The editor itself takes keyboard focus so shortcuts work after clicking the timeline;
-        // text fields still receive their own keys when they are being edited.
-        .focusable()
-        .focusEffectDisabled()
-        .focused($editorFocused)
-        .onAppear { editorFocused = true }
-        .onChange(of: model.selection) { _, selection in if selection != nil { editorFocused = true } }
-        .onKeyPress(keys: [.delete, .deleteForward]) { _ in
-            guard model.selection != nil else { return .ignored }
-            model.deleteSelection()
-            return .handled
-        }
-        .onKeyPress(.space) { model.togglePlay(); return .handled }
-        .onKeyPress(.leftArrow) { model.step(frames: -1); return .handled }
-        .onKeyPress(.rightArrow) { model.step(frames: 1); return .handled }
+        .onAppear { keyMonitor.install(model: model) }
+        .onDisappear { keyMonitor.remove() }
     }
 
     // MARK: Title bar
@@ -375,5 +362,62 @@ struct TransportBar: View {
         }
         .padding(.horizontal, 24)
         .frame(height: 56)
+    }
+}
+
+/// Editor keyboard shortcuts, handled from an app-level key monitor so they work no matter which control
+/// was clicked last. Keys typed into a text field are left alone. Sheets (export, crop) are skipped too.
+@MainActor
+final class EditorKeyMonitor {
+    private var monitor: Any?
+
+    func install(model: EditorModel) {
+        remove()
+        monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak model] event in
+            // Local key monitors are called on the main thread.
+            nonisolated(unsafe) let event = event
+            let handled = MainActor.assumeIsolated { () -> Bool in
+                guard let model else { return false }
+                return Self.handle(event, model: model)
+            }
+            return handled ? nil : event
+        }
+    }
+
+    func remove() {
+        if let monitor { NSEvent.removeMonitor(monitor) }
+        monitor = nil
+    }
+
+    private static func handle(_ event: NSEvent, model: EditorModel) -> Bool {
+        guard let window = event.window, window.isKeyWindow, window.attachedSheet == nil, !(window is NSPanel),
+              !model.showExport, !model.showMotionEditor else { return false }
+        // Typing in a text field (project name, text overlay, caption): let the field have the key.
+        if window.firstResponder is NSText { return false }
+
+        let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+        let key = event.charactersIgnoringModifiers?.lowercased() ?? ""
+        switch (key, flags) {
+        case ("z", [.command]):
+            model.undo(); return true
+        case ("z", [.command, .shift]), ("y", [.command]):
+            model.redo(); return true
+        default:
+            break
+        }
+        guard flags.subtracting([.function, .numericPad]).isEmpty else { return false }
+        switch Int(event.keyCode) {
+        case 51, 117:   // Delete, Forward Delete
+            guard model.selection != nil else { return false }
+            model.deleteSelection(); return true
+        case 49:        // Space
+            model.togglePlay(); return true
+        case 123:       // Left arrow
+            model.step(frames: -1); return true
+        case 124:       // Right arrow
+            model.step(frames: 1); return true
+        default:
+            return false
+        }
     }
 }
