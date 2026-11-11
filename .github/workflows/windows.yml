@@ -23,6 +23,9 @@ jobs:
       - name: Test core (cross-platform)
         run: dotnet test tests/Framelo.Core.Tests -c Release --logger "trx;LogFileName=core.trx" --results-directory TestResults
 
+      - name: Test rendering (cross-platform)
+        run: dotnet test tests/Framelo.Rendering.Tests -c Release --logger "trx;LogFileName=rendering.trx" --results-directory TestResults
+
       - name: Test Media Foundation (Windows)
         run: dotnet test tests/Framelo.Platform.Tests -c Release --logger "trx;LogFileName=platform.trx" --results-directory TestResults
 

@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- The compositor: FrameState → pixels with SkiaSharp. Cross-platform, so it is pixel-tested on every OS. -->
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <RootNamespace>Framelo.Rendering</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="SkiaSharp" Version="2.88.8" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Framelo.Core\Framelo.Core.csproj" />
+  </ItemGroup>
+</Project>
