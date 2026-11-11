@@ -23,6 +23,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Framelo.Core\Framelo.Core.csproj" />
     <ProjectReference Include="..\Framelo.Platform\Framelo.Platform.csproj" />
+    <ProjectReference Include="..\Framelo.Rendering\Framelo.Rendering.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="Assets\**" CopyToOutputDirectory="PreserveNewest" />

@@ -23,6 +23,7 @@ public partial class App : Application
     {
         Services = AppServices.Create();
         Navigation.OpenProjectHandler = id => MainWindow.Navigate(typeof(Views.EditorPage), id);
+        Views.EditorPage.RendererFactory = model => new StyledRenderer(model.Video);
         MainWindow = new MainWindow();
         MainWindow.Activate();
         _ = RecoverAtLaunch();
