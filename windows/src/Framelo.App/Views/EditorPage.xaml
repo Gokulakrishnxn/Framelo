@@ -1,0 +1,71 @@
+<Page
+    x:Class="Framelo.App.Views.EditorPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="using:Framelo.App.Controls"
+    Background="{StaticResource WindowBackgroundBrush}"
+    KeyDown="OnKeyDown">
+    <Grid RowSpacing="0">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="52" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="48" />
+            <RowDefinition Height="200" />
+        </Grid.RowDefinitions>
+
+        <!-- Toolbar -->
+        <Grid Padding="12,0" ColumnSpacing="8" BorderBrush="{StaticResource FrameloBorderBrush}" BorderThickness="0,0,0,1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                <Button Click="OnBack" ToolTipService.ToolTip="Back to projects" Padding="8,6"><FontIcon Glyph="&#xE72B;" FontSize="14" /></Button>
+                <TextBox x:Name="NameBox" Width="280" LostFocus="OnRename" BorderThickness="0" Background="Transparent" FontWeight="SemiBold" />
+                <TextBlock x:Name="RecoveredBadge" Text="Recovered" Foreground="{StaticResource ClipAmberBrush}" VerticalAlignment="Center" Visibility="Collapsed" />
+            </StackPanel>
+            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                <Button x:Name="UndoButton" Click="OnUndo" Padding="8,6"><FontIcon Glyph="&#xE7A7;" FontSize="14" /></Button>
+                <Button x:Name="RedoButton" Click="OnRedo" Padding="8,6"><FontIcon Glyph="&#xE7A6;" FontSize="14" /></Button>
+                <Button x:Name="ExportButton" Click="OnExport" Style="{StaticResource PrimaryButton}">
+                    <StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xEDE1;" FontSize="14" /><TextBlock Text="Export" /></StackPanel>
+                </Button>
+            </StackPanel>
+        </Grid>
+
+        <!-- Preview + settings -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="320" />
+                <ColumnDefinition Width="56" />
+            </Grid.ColumnDefinitions>
+            <Grid x:Name="PreviewHost" Padding="24" SizeChanged="OnPreviewSize">
+                <Image x:Name="Preview" Stretch="Uniform" />
+                <TextBlock x:Name="PreviewMessage" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{StaticResource TextSecondaryBrush}" />
+            </Grid>
+            <ScrollViewer Grid.Column="1" Background="{StaticResource PanelBackgroundBrush}" BorderBrush="{StaticResource FrameloBorderBrush}" BorderThickness="1,0,0,0">
+                <StackPanel x:Name="Inspector" Padding="18" Spacing="14" />
+            </ScrollViewer>
+            <StackPanel x:Name="Rail" Grid.Column="2" Background="{StaticResource PanelBackgroundBrush}" Padding="6,12" Spacing="6"
+                        BorderBrush="{StaticResource FrameloBorderBrush}" BorderThickness="1,0,0,0" />
+        </Grid>
+
+        <!-- Transport -->
+        <Grid Grid.Row="2" Padding="16,0" BorderBrush="{StaticResource FrameloBorderBrush}" BorderThickness="0,1,0,0">
+            <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                <Button x:Name="SplitButton" Click="OnSplit" ToolTipService.ToolTip="Split at playhead (S)" Padding="8,6"><FontIcon Glyph="&#xE8C6;" FontSize="14" /></Button>
+                <Button x:Name="DeleteButton" Click="OnDelete" ToolTipService.ToolTip="Delete selection (Del)" Padding="8,6"><FontIcon Glyph="&#xE74D;" FontSize="14" /></Button>
+                <Button x:Name="AddZoomButton" Click="OnAddZoom" ToolTipService.ToolTip="Add zoom at playhead (Z)" Padding="8,6"><FontIcon Glyph="&#xE71E;" FontSize="14" /></Button>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Spacing="12" HorizontalAlignment="Center" VerticalAlignment="Center">
+                <Button x:Name="PlayButton" Click="OnPlay" Width="44" Height="36" CornerRadius="18"><FontIcon x:Name="PlayIcon" Glyph="&#xE768;" FontSize="14" /></Button>
+                <TextBlock x:Name="TimeText" FontFamily="Consolas" VerticalAlignment="Center" />
+            </StackPanel>
+            <TextBlock x:Name="StatusText" HorizontalAlignment="Right" VerticalAlignment="Center" Foreground="{StaticResource TextSecondaryBrush}" />
+        </Grid>
+
+        <controls:TimelineControl x:Name="Timeline" Grid.Row="3" />
+    </Grid>
+</Page>

@@ -22,6 +22,7 @@ public partial class App : Application
     protected override void OnLaunched(LaunchActivatedEventArgs args)
     {
         Services = AppServices.Create();
+        Navigation.OpenProjectHandler = id => MainWindow.Navigate(typeof(Views.EditorPage), id);
         MainWindow = new MainWindow();
         MainWindow.Activate();
         _ = RecoverAtLaunch();
