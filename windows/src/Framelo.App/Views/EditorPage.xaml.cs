@@ -8,7 +8,7 @@ using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media.Imaging;
 using Microsoft.UI.Xaml.Navigation;
-using Windows.System;
+using VirtualKey = Windows.System.VirtualKey;
 
 namespace Framelo.App.Views;
 
