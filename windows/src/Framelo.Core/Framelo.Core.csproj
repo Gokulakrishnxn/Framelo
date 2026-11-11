@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- UI-free, platform-free engine: models, timeline, motion, frame evaluation, storage. Builds and tests on any OS. -->
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <RootNamespace>Framelo.Core</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Framelo.Core.Tests" />
+  </ItemGroup>
+</Project>
