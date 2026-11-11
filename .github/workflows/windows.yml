@@ -1,0 +1,44 @@
+name: Windows
+
+on:
+  push:
+    paths: ["windows/**", ".github/workflows/windows.yml"]
+  pull_request:
+    paths: ["windows/**", ".github/workflows/windows.yml"]
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: windows
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore
+        run: dotnet restore Framelo.sln -p:Platform=x64
+
+      - name: Build
+        run: dotnet build Framelo.sln -c Release -p:Platform=x64 --no-restore
+
+      - name: Test
+        run: dotnet test Framelo.sln -c Release -p:Platform=x64 --no-build --logger "trx;LogFileName=results.trx" --results-directory TestResults
+
+      - name: Publish app
+        run: dotnet publish src/Framelo.App/Framelo.App.csproj -c Release -p:Platform=x64 -r win-x64 -o artifacts/Framelo-win-x64
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: windows/TestResults
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Framelo-win-x64
+          path: windows/artifacts/Framelo-win-x64

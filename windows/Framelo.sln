@@ -11,6 +11,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{B5B81B42
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Framelo.Core.Tests", "tests\Framelo.Core.Tests\Framelo.Core.Tests.csproj", "{12374F1C-0EE3-419F-B50A-2D2632BFCB8A}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Framelo.App", "src\Framelo.App\Framelo.App.csproj", "{CC9BAAB1-BA82-4C19-8636-05741B2E659F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -28,9 +30,14 @@ Global
 		{12374F1C-0EE3-419F-B50A-2D2632BFCB8A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{12374F1C-0EE3-419F-B50A-2D2632BFCB8A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{12374F1C-0EE3-419F-B50A-2D2632BFCB8A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CC9BAAB1-BA82-4C19-8636-05741B2E659F}.Debug|Any CPU.ActiveCfg = Debug|x64
+		{CC9BAAB1-BA82-4C19-8636-05741B2E659F}.Debug|Any CPU.Build.0 = Debug|x64
+		{CC9BAAB1-BA82-4C19-8636-05741B2E659F}.Release|Any CPU.ActiveCfg = Release|x64
+		{CC9BAAB1-BA82-4C19-8636-05741B2E659F}.Release|Any CPU.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{36AA4271-53F0-4D7D-A657-4C3B07209CDF} = {E916BC2A-73D0-4FA1-A0FD-31EDED500768}
 		{12374F1C-0EE3-419F-B50A-2D2632BFCB8A} = {B5B81B42-4603-4DB4-977C-84C4020B0D3B}
+		{CC9BAAB1-BA82-4C19-8636-05741B2E659F} = {E916BC2A-73D0-4FA1-A0FD-31EDED500768}
 	EndGlobalSection
 EndGlobal
