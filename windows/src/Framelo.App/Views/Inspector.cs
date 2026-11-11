@@ -130,6 +130,25 @@ internal sealed class Inspector(EditorPage page)
         {
             Note("Drag in the purple zoom lane, or press Z, to add a zoom at the playhead.");
         }
+        Header("Automatic zoom");
+        Toggle("Zoom in on clicks", S.Motion.AutoZoomEnabled, v => Edit(new EditCommand(v ? "Turn On Auto Zoom" : "Turn Off Auto Zoom", p =>
+        {
+            p.Settings.Motion.AutoZoomEnabled = v;
+            MotionEngine.RegenerateAutomaticZooms(p.Timeline, Cursor(p), p.Settings.Motion);
+        })));
+        if (S.Motion.AutoZoomEnabled)
+        {
+            var count = Model.Project.Timeline.ZoomEvents.Count(z => z.IsAutomatic);
+            Note(count == 1 ? "1 suggested zoom. Manual zooms always take priority." : $"{count} suggested zooms. Manual zooms always take priority.");
+            Action("Regenerate suggestions", () => Edit(new EditCommand("Regenerate Zooms",
+                p => MotionEngine.RegenerateAutomaticZooms(p.Timeline, Cursor(p), p.Settings.Motion))));
+            if (Model.Project.Timeline.SuppressedAutoZoomRanges.Count > 0)
+                Action("Bring back removed suggestions", () => Edit(new EditCommand("Allow Removed Zooms", p =>
+                {
+                    p.Timeline.SuppressedAutoZoomRanges.Clear();
+                    MotionEngine.RegenerateAutomaticZooms(p.Timeline, Cursor(p), p.Settings.Motion);
+                })));
+        }
         Header("Defaults");
         SliderRow("Default scale", 1.2, 4, S.Motion.DefaultZoomScale, "0.0×", v => Setting("Default Zoom", s => s.Motion.DefaultZoomScale = v, "zoom-default"));
         SliderRow("Motion blur", 0, 1, S.Motion.MotionBlur, "P0", v => Setting("Motion Blur", s => s.Motion.MotionBlur = v, "blur"));
@@ -159,6 +178,8 @@ internal sealed class Inspector(EditorPage page)
         SliderRow("Fade in", 0, 5, S.Audio.FadeIn, "0.0 s", v => Setting("Fade In", s => s.Audio.FadeIn = v, "fade-in"));
         SliderRow("Fade out", 0, 5, S.Audio.FadeOut, "0.0 s", v => Setting("Fade Out", s => s.Audio.FadeOut = v, "fade-out"));
     }
+
+    private TimelineCursor Cursor(Project p) => new(new TimeMap(p), Model.Session.CursorTracks);
 
     // Building blocks
 

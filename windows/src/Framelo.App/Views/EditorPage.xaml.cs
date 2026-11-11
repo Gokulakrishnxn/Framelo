@@ -45,6 +45,13 @@ public sealed partial class EditorPage : Page
         catch (Exception ex) { App.MainWindow.ShowDashboard(ex.Message); return; }
 
         var session = new EditorSession(App.Services.Store, project);
+        // First open of a recording: suggest zooms from the recorded clicks (not an undoable user edit).
+        if (project.Timeline.ZoomEvents.Count == 0 && project.Timeline.SuppressedAutoZoomRanges.Count == 0 &&
+            project.Settings.Motion.AutoZoomEnabled && session.CursorTracks.Count > 0)
+        {
+            session.TryPerform(new EditCommand("Suggest Zooms", p =>
+                MotionEngine.RegenerateAutomaticZooms(p.Timeline, new TimelineCursor(new TimeMap(p), session.CursorTracks), p.Settings.Motion)), out _);
+        }
         session.SaveFailed += ex => DispatcherQueue.TryEnqueue(() => StatusText.Text = $"Could not save: {ex.Message}");
         _model = new EditorModel(session, null!);
         _model.Renderer = RendererFactory?.Invoke(_model) ?? new RawFrameRenderer(_model.Video);
