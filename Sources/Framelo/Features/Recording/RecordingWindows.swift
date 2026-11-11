@@ -81,7 +81,7 @@ final class RecordingWindows {
     // MARK: Floating controls
 
     func showHUD(controller: RecordingController) {
-        let panel = NSPanel(contentRect: CGRect(x: 0, y: 0, width: 300, height: 52),
+        let panel = NSPanel(contentRect: CGRect(x: 0, y: 0, width: 330, height: 52),
                             styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
         panel.isOpaque = false
         panel.backgroundColor = .clear
@@ -94,7 +94,7 @@ final class RecordingWindows {
         panel.sharingType = .none
         panel.contentView = FirstClickHostingView(rootView: RecordingHUD(controller: controller))
         if let screen = NSScreen.main {
-            panel.setFrameOrigin(CGPoint(x: screen.visibleFrame.midX - 150, y: screen.visibleFrame.minY + 36))
+            panel.setFrameOrigin(CGPoint(x: screen.visibleFrame.midX - 165, y: screen.visibleFrame.minY + 36))
         }
         panel.orderFrontRegardless()
         hud = panel
@@ -145,6 +145,12 @@ struct RecordingHUD: View {
 
     var body: some View {
         HStack(spacing: Theme.m) {
+            Image(systemName: "line.3.horizontal")
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(Color.white.opacity(0.4))
+                .frame(width: 22, height: 44)
+                .overlay(WindowDragArea())
+                .help("Drag to move")
             Circle()
                 .fill(controller.phase == .paused ? Theme.textTint : Theme.danger)
                 .frame(width: 9, height: 9)
@@ -167,7 +173,7 @@ struct RecordingHUD: View {
             .help("Stop and open in the editor (⇧⌘2)")
         }
         .padding(.horizontal, Theme.m)
-        .frame(width: 300, height: 52)
+        .frame(width: 330, height: 52)
         .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Color(hex: 0x1A1A1D)))
         .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(Color.white.opacity(0.14)))
         .preferredColorScheme(.dark)
