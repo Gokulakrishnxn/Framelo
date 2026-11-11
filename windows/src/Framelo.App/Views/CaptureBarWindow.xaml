@@ -5,10 +5,10 @@
     xmlns:controls="using:Framelo.App.Controls"
     Title="Framelo Capture">
     <!-- The floating capture bar. It is excluded from every recording. -->
-    <Grid x:Name="Root" Background="{StaticResource PanelBackgroundBrush}" Padding="12,0" BorderBrush="{StaticResource FrameloBorderBrush}" BorderThickness="1">
+    <Grid x:Name="Root" Background="{ThemeResource PanelBackgroundBrush}" Padding="12,0" BorderBrush="{ThemeResource FrameloBorderBrush}" BorderThickness="1">
         <StackPanel x:Name="SetupPanel" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
             <controls:LogoMark Width="26" Height="26" />
-            <Border Background="{StaticResource CardBackgroundBrush}" CornerRadius="8" Padding="3">
+            <Border Background="{ThemeResource CardBackgroundBrush}" CornerRadius="8" Padding="3">
                 <StackPanel Orientation="Horizontal" Spacing="2">
                     <ToggleButton x:Name="DisplayMode" Click="OnMode" Tag="display" IsChecked="True" ToolTipService.ToolTip="Record a display" Padding="10,6">
                         <StackPanel Orientation="Horizontal" Spacing="6"><FontIcon Glyph="&#xE7F4;" FontSize="14" /><TextBlock Text="Display" /></StackPanel>

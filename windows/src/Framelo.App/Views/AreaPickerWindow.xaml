@@ -9,7 +9,7 @@
             <Rectangle x:Name="Selection" Stroke="{StaticResource AccentPurpleBrush}" StrokeThickness="2" Fill="#227C5CFF" Visibility="Collapsed" />
         </Canvas>
         <Border x:Name="Hint" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,40,0,0" Padding="16,10" CornerRadius="10"
-                Background="{StaticResource PanelBackgroundBrush}" IsHitTestVisible="False">
+                Background="{ThemeResource PanelBackgroundBrush}" IsHitTestVisible="False">
             <TextBlock x:Name="HintText" Text="Drag to select the area to record · Enter to confirm · Esc to cancel" />
         </Border>
     </Grid>

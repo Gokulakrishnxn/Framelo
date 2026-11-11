@@ -13,9 +13,10 @@ public static class Navigation
     {
         if (_captureBar != null) { _captureBar.Activate(); return; }
         _captureBar = new CaptureBarWindow();
-        _captureBar.Finished += (project, error) =>
+        _captureBar.Finished += async (project, error) =>
         {
             _captureBar = null;
+            if (project != null) project = await Task.Run(() => Prepare(project));
             WindowHelpers.Restore(App.MainWindow);
             if (project != null && App.Services.Preferences.OpenEditorAfterRecording) OpenProject(project.Id);
             else App.MainWindow.ShowDashboard(error ?? (project != null ? $"Saved “{project.Name}”." : null));
@@ -49,5 +50,47 @@ public static class Navigation
         return null;
     }
 
-    public static Task ImportVideoAsync() => Task.CompletedTask;
+    /// <summary>Applies the user's defaults to a new project, saves it and writes its poster.</summary>
+    private static Project Prepare(Project project)
+    {
+        try
+        {
+            App.Services.Preferences.ApplyTo(project);
+            App.Services.Store.Save(project);
+            var package = App.Services.Store.Location.PackagePath(project.Id);
+            var cursors = project.Sources.Where(s => s.CursorPath != null)
+                .ToDictionary(s => s.Id, s => CursorTrack.Load(ProjectPackage.Resolve(s.CursorPath!, package)));
+            PosterWriter.Write(project, cursors, package);
+        }
+        catch (Exception e)
+        {
+            Log.Error("Prepare project", e);
+        }
+        return project;
+    }
+
+    /// <summary>Makes a project around a video file. The file is referenced where it is, never copied or changed.</summary>
+    public static async Task ImportVideoAsync()
+    {
+        var picker = new Windows.Storage.Pickers.FileOpenPicker { SuggestedStartLocation = Windows.Storage.Pickers.PickerLocationId.VideosLibrary };
+        foreach (var ext in new[] { ".mp4", ".mov", ".m4v", ".wmv", ".avi", ".mkv" }) picker.FileTypeFilter.Add(ext);
+        WinRT.Interop.InitializeWithWindow.Initialize(picker, WindowHelpers.Handle(App.MainWindow));
+        var file = await picker.PickSingleFileAsync();
+        if (file == null) return;
+        var path = file.Path;
+        var project = await Task.Run(() =>
+        {
+            var facts = new MfInspector().Inspect(path);
+            if (facts == null || !facts.HasVideo || facts.Duration <= 0) return null;
+            var name = Path.GetFileNameWithoutExtension(path);
+            var source = new MediaSource
+            {
+                Kind = SourceKind.ImportedVideo, Name = name, Duration = facts.Duration,
+                Screen = new MediaFile { RelativePath = path, Duration = facts.Duration, PixelWidth = facts.PixelWidth, PixelHeight = facts.PixelHeight, HasAudio = facts.HasAudio },
+            };
+            return Prepare(Project.Make(name, source));
+        });
+        if (project == null) App.MainWindow.ShowDashboard($"“{file.Name}” could not be opened as a video.");
+        else OpenProject(project.Id);
+    }
 }

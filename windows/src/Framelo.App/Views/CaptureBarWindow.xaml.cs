@@ -28,7 +28,8 @@ public sealed partial class CaptureBarWindow : Window
         InitializeComponent();
         WindowHelpers.MakeFloating(this);
         Place(BarWidth);
-        WindowCapture.Exclude(WindowHelpers.Handle(this));
+        if (App.Services.Preferences.ExcludeFrameloFromCapture) WindowCapture.Exclude(WindowHelpers.Handle(this));
+        Appearance.Register(this);
         _ticker = DispatcherQueue.CreateTimer();
         _ticker.Interval = TimeSpan.FromMilliseconds(100);
         _ticker.Tick += (_, _) => Tick();

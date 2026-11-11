@@ -25,7 +25,10 @@ public partial class App : Application
         Navigation.OpenProjectHandler = id => MainWindow.Navigate(typeof(Views.EditorPage), id);
         Views.EditorPage.RendererFactory = model => new StyledRenderer(model.Video);
         Views.EditorPage.ExportHandler = Views.ExportFlow.RunAsync;
+        Navigation.OpenSettingsHandler = Views.SettingsWindow.Show;
         MainWindow = new MainWindow();
+        Appearance.Register(MainWindow);
+        Appearance.ApplyAccent();
         MainWindow.Activate();
         _ = RecoverAtLaunch();
     }

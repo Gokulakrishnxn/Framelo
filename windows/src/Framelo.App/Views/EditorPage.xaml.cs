@@ -1,6 +1,7 @@
 using System.Runtime.InteropServices.WindowsRuntime;
 using Framelo.App.Services;
 using Framelo.Core;
+using Framelo.Platform.Media;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -77,7 +78,13 @@ public sealed partial class EditorPage : Page
         _timer?.Stop();
         var model = _model;
         _model = null;
-        if (model != null) _ = Task.Run(model.Dispose);
+        if (model != null)
+            _ = Task.Run(() =>
+            {
+                model.Dispose();   // saves pending changes
+                try { PosterWriter.Write(model.Project, model.Session.CursorTracks, model.Session.PackagePath); }
+                catch (Exception ex) { Log.Error("Poster", ex); }
+            });
     }
 
     private void OnProjectChanged()

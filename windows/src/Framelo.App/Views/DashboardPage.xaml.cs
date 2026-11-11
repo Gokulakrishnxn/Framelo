@@ -67,6 +67,42 @@ public sealed partial class DashboardPage : Page
         if (e.ClickedItem is ProjectCard card) Navigation.OpenProject(card.Summary.Id);
     }
 
+    private void OnCardRightTapped(object sender, Microsoft.UI.Xaml.Input.RightTappedRoutedEventArgs e)
+    {
+        if (sender is not FrameworkElement { DataContext: ProjectCard card } element) return;
+        var menu = new MenuFlyout();
+        void Add(string text, string glyph, Action action)
+        {
+            var item = new MenuFlyoutItem { Text = text, Icon = new FontIcon { Glyph = glyph } };
+            item.Click += (_, _) => action();
+            menu.Items.Add(item);
+        }
+        Add("Open", "\uE8A7", () => Navigation.OpenProject(card.Summary.Id));
+        Add("Rename…", "\uE8AC", async () =>
+        {
+            var box = new TextBox { Text = card.Name };
+            var dialog = new ContentDialog { Title = "Rename project", Content = box, PrimaryButtonText = "Rename", CloseButtonText = "Cancel", XamlRoot = XamlRoot, DefaultButton = ContentDialogButton.Primary };
+            if (await dialog.ShowAsync() == ContentDialogResult.Primary && box.Text.Trim().Length > 0)
+            {
+                try { App.Services.Store.Rename(card.Summary.Id, box.Text.Trim()); } catch (Exception ex) { ShowBanner(ex.Message, InfoBarSeverity.Error); }
+                Reload();
+            }
+        });
+        Add("Show in File Explorer", "\uE838", () => System.Diagnostics.Process.Start("explorer.exe", $"\"{card.Summary.PackagePath}\""));
+        menu.Items.Add(new MenuFlyoutSeparator());
+        Add("Move to Recycle Bin…", "\uE74D", async () =>
+        {
+            var dialog = new ContentDialog
+            {
+                Title = $"Move “{card.Name}” to the Recycle Bin?", Content = "You can restore it from the Recycle Bin until you empty it.",
+                PrimaryButtonText = "Move to Recycle Bin", CloseButtonText = "Cancel", XamlRoot = XamlRoot, DefaultButton = ContentDialogButton.Close,
+            };
+            if (await dialog.ShowAsync() == ContentDialogResult.Primary && RecycleBin.Send(card.Summary.PackagePath)) Reload();
+        });
+        menu.ShowAt(element, e.GetPosition(element));
+        e.Handled = true;
+    }
+
     private void OnNewRecording(object sender, RoutedEventArgs e) => Navigation.StartRecording();
     private void OnSettings(object sender, RoutedEventArgs e) => Navigation.OpenSettings();
     private async void OnImport(object sender, RoutedEventArgs e) => await Navigation.ImportVideoAsync();
