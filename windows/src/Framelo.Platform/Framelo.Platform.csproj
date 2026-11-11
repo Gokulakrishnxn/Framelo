@@ -14,6 +14,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Framelo.Core\Framelo.Core.csproj" />
+    <ProjectReference Include="..\Framelo.Rendering\Framelo.Rendering.csproj" />
     <InternalsVisibleTo Include="Framelo.Platform.Tests" />
   </ItemGroup>
 </Project>

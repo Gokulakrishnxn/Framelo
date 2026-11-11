@@ -24,6 +24,7 @@ public partial class App : Application
         Services = AppServices.Create();
         Navigation.OpenProjectHandler = id => MainWindow.Navigate(typeof(Views.EditorPage), id);
         Views.EditorPage.RendererFactory = model => new StyledRenderer(model.Video);
+        Views.EditorPage.ExportHandler = Views.ExportFlow.RunAsync;
         MainWindow = new MainWindow();
         MainWindow.Activate();
         _ = RecoverAtLaunch();
