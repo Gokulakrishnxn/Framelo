@@ -43,8 +43,10 @@ public sealed class RecordingSession : IDisposable
         _journal.Write(_package);
         _gpu = new GraphicsDevice();
 
-        var (item, crop, area) = Resolve(config.Target);
-        _journal.Capture = new CaptureInfo { X = area().Left, Y = area().Top, Width = area().Width, Height = area().Height, Scale = 1 };
+        var (item, crop, area, monitor) = Resolve(config.Target);
+        var rect = area();
+        var scale = Native.MonitorScale(monitor);
+        _journal.Capture = new CaptureInfo { X = rect.Left / scale, Y = rect.Top / scale, Width = rect.Width / scale, Height = rect.Height / scale, Scale = scale };
         _screen = new ScreenRecorder(_gpu, item, _clock, config.FrameRate, crop);
         if (config.CaptureMicrophone)
         {
@@ -99,7 +101,7 @@ public sealed class RecordingSession : IDisposable
     }
 
     /// <summary>Maps a target to a capture item, an optional crop inside it, and the captured screen rectangle.</summary>
-    private static (GraphicsCaptureItem Item, (int, int, int, int)? Crop, Func<Native.RECT> Area) Resolve(CaptureTarget target)
+    private static (GraphicsCaptureItem Item, (int, int, int, int)? Crop, Func<Native.RECT> Area, IntPtr Monitor) Resolve(CaptureTarget target)
     {
         switch (target)
         {
@@ -107,7 +109,7 @@ public sealed class RecordingSession : IDisposable
             {
                 var hwnd = new IntPtr(w.Id);
                 var item = GraphicsDevice.CaptureItemForWindow(hwnd);
-                return (item, null, () => CaptureCatalog.Bounds(hwnd));
+                return (item, null, () => CaptureCatalog.Bounds(hwnd), Native.MonitorFromWindow(hwnd, 2));
             }
             case CaptureTarget.Region r:
             {
@@ -118,14 +120,14 @@ public sealed class RecordingSession : IDisposable
                 var width = (int)Math.Clamp(r.Width, 2, display.Width - x);
                 var height = (int)Math.Clamp(r.Height, 2, display.Height - y);
                 var rect = new Native.RECT { Left = display.X + x, Top = display.Y + y, Right = display.X + x + width, Bottom = display.Y + y + height };
-                return (item, (x, y, width, height), () => rect);
+                return (item, (x, y, width, height), () => rect, display.Handle);
             }
             case CaptureTarget.Display d:
             {
                 var display = CaptureCatalog.Display(d.Id) ?? CaptureCatalog.Displays().First();
                 var item = GraphicsDevice.CaptureItemForMonitor(display.Handle);
                 var rect = new Native.RECT { Left = display.X, Top = display.Y, Right = display.X + display.Width, Bottom = display.Y + display.Height };
-                return (item, null, () => rect);
+                return (item, null, () => rect, display.Handle);
             }
             default:
                 throw new ArgumentOutOfRangeException(nameof(target));

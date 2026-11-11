@@ -16,7 +16,9 @@ public sealed class MediaFile
     public double RateCorrection { get; set; } = 1;
 }
 
-/// <summary>Captured rectangle in global screen pixels (top-left origin) and its DPI scale.</summary>
+/// <summary>
+/// Captured rectangle in screen points (pixels ÷ scale, top-left origin) and the display's scale factor, as on macOS.
+/// </summary>
 public sealed class CaptureInfo
 {
     public double X { get; set; }
