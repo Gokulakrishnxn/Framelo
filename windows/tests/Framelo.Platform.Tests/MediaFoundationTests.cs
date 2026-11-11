@@ -85,3 +85,33 @@ public class MediaFoundationTests
         Assert.InRange(facts.Duration, 0.99, 1.01);
     }
 }
+
+public class DecoderTests
+{
+    [Fact]
+    public void ReadsFramesAtRandomTimesAndInOrder()
+    {
+        var path = MediaFoundationTests.WriteClip(Path.Combine(MediaFoundationTests.TempDir(), "clip.mp4"), 320, 240, 30, 2, audio: true, fragmented: true);
+        using var reader = new MfVideoReader(path);
+        Assert.Equal(320, reader.Width);
+        Assert.Equal(240, reader.Height);
+        var late = reader.FrameAt(1.5)!;
+        Assert.InRange(late.Time, 1.4, 1.5);
+        var early = reader.FrameAt(0.2)!;
+        Assert.InRange(early.Time, 0.1, 0.2);
+        // The bar moves left to right: at 1.5 s it is near x = 240, so that pixel is white.
+        var o = (120 * 320 + 240) * 4;
+        Assert.True(late.Bgra[o] > 200 && late.Bgra[o + 1] > 200 && late.Bgra[o + 2] > 200, "bar not found where expected");
+        for (var t = 0.0; t < 1.9; t += 1.0 / 30) Assert.NotNull(reader.FrameAt(t));
+    }
+
+    [Fact]
+    public void DecodesAudioIntoTheMixFormat()
+    {
+        var path = MediaFoundationTests.WriteClip(Path.Combine(MediaFoundationTests.TempDir(), "clip.mp4"), 160, 120, 30, 2, audio: true, fragmented: false);
+        var pcm = MfAudioDecoder.Decode(path);
+        Assert.NotNull(pcm);
+        Assert.InRange(pcm!.Duration, 1.9, 2.1);
+        Assert.True(pcm.Samples.Skip(48_000).Take(4800).Max() > 0.1f, "tone missing");
+    }
+}
