@@ -69,7 +69,7 @@ public sealed class SettingsWindow : Window
 
     private void Profile()
     {
-        Title("Profile", "Your name is written into exported videos as their author.");
+        Heading("Profile", "Your name is written into exported videos as their author.");
         _page.Children.Add(new PersonPicture { DisplayName = Prefs.DisplayName, Width = 72, Height = 72, HorizontalAlignment = HorizontalAlignment.Left });
         Text("Name", Prefs.DisplayName, v => { Prefs.DisplayName = v; Save(); });
         Text("Email", Prefs.Email, v => { Prefs.Email = v; Save(); });
@@ -78,14 +78,14 @@ public sealed class SettingsWindow : Window
 
     private void AppearancePage()
     {
-        Title("Appearance", null);
+        Heading("Appearance", null);
         Combo("Theme", new[] { "System", "Dark", "Light" }, (int)Prefs.Theme, i => { Prefs.Theme = (ThemeChoice)i; Save(); Appearance.ApplyAll(); });
         Combo("Accent colour", Enum.GetNames<AccentChoice>(), (int)Prefs.Accent, i => { Prefs.Accent = (AccentChoice)i; Save(); Appearance.ApplyAll(); });
     }
 
     private void Recording()
     {
-        Title("Recording", "Defaults for the capture bar.");
+        Heading("Recording", "Defaults for the capture bar.");
         Combo("Frame rate", new[] { "30 fps", "60 fps" }, Prefs.FrameRate >= 60 ? 1 : 0, i => { Prefs.FrameRate = i == 1 ? 60 : 30; Save(); });
         var countdowns = new[] { 0, 3, 5, 10 };
         Combo("Countdown", new[] { "None", "3 seconds", "5 seconds", "10 seconds" }, Math.Max(0, Array.IndexOf(countdowns, Prefs.CountdownSeconds)),
@@ -101,7 +101,7 @@ public sealed class SettingsWindow : Window
 
     private void Editing()
     {
-        Title("Editing & Export", "Applied to new recordings and imported videos.");
+        Heading("Editing & Export", "Applied to new recordings and imported videos.");
         Combo("Default style", StylePreset.All.Select(p => p.Name).ToArray(), Math.Max(0, StylePreset.All.ToList().FindIndex(p => p.Id == Prefs.DefaultPresetId)),
             i => { Prefs.DefaultPresetId = StylePreset.All[i].Id; Save(); });
         Toggle("Suggest zooms from clicks", Prefs.AutoZoomByDefault, v => { Prefs.AutoZoomByDefault = v; Save(); });
@@ -116,7 +116,7 @@ public sealed class SettingsWindow : Window
 
     private void Storage()
     {
-        Title("Storage", null);
+        Heading("Storage", null);
         var location = App.Services.Store.Location;
         Note($"Library: {location.Root}");
         long Size(string dir) => Directory.Exists(dir) ? Directory.EnumerateFiles(dir, "*", SearchOption.AllDirectories).Sum(f => new FileInfo(f).Length) : 0;
@@ -143,7 +143,7 @@ public sealed class SettingsWindow : Window
 
     private void Privacy()
     {
-        Title("Privacy & Data", "Framelo works offline. Recordings never leave this PC unless you share an export.");
+        Heading("Privacy & Data", "Framelo works offline. Recordings never leave this PC unless you share an export.");
         Toggle("Hide Framelo's own windows from recordings", Prefs.ExcludeFrameloFromCapture, v => { Prefs.ExcludeFrameloFromCapture = v; Save(); });
         Button("Reset all settings", async () =>
         {
@@ -168,14 +168,14 @@ public sealed class SettingsWindow : Window
 
     private void About()
     {
-        Title("Framelo", "Record. Polish. Share.");
+        Heading("Framelo", "Record. Polish. Share.");
         Note($"Version {typeof(App).Assembly.GetName().Version?.ToString(3)} for Windows");
         Note($"Log file: {Log.PathName}");
     }
 
     // Building blocks
 
-    private void Title(string text, string? subtitle)
+    private void Heading(string text, string? subtitle)
     {
         _page.Children.Add(new TextBlock { Text = text, FontSize = 24, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold });
         if (subtitle != null) Note(subtitle);
