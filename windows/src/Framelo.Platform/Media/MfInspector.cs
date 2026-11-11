@@ -23,11 +23,17 @@ public sealed class MfInspector : IMediaInspector
 
             int width = 0, height = 0;
             bool hasVideo = false, hasAudio = false;
+            string? codec = null;
+            double frameRate = 0;
             try
             {
                 using var type = reader.GetNativeMediaType(SourceReaderIndex.FirstVideoStream, 0);
                 MediaFactory.MFGetAttributeSize(type, MediaTypeAttributeKeys.FrameSize, out var w, out var h);
                 width = (int)w; height = (int)h; hasVideo = true;
+                var subtype = type.GetGUID(MediaTypeAttributeKeys.Subtype);
+                codec = subtype == VideoFormatGuids.H264 ? "h264" : subtype == VideoFormatGuids.Hevc ? "hevc" : subtype.ToString();
+                if (MediaFactory.MFGetAttributeRatio(type, MediaTypeAttributeKeys.FrameRate, out var num, out var den).Success && den > 0)
+                    frameRate = (double)num / den;
             }
             catch (Exception) { }
             try
@@ -38,7 +44,7 @@ public sealed class MfInspector : IMediaInspector
             catch (Exception) { }
             if (!hasVideo && !hasAudio) return null;
             if (duration <= 0) duration = MeasureDuration(reader, hasVideo);
-            return new MediaFacts(duration, width, height, hasAudio, hasVideo);
+            return new MediaFacts(duration, width, height, hasAudio, hasVideo, codec, frameRate);
         }
         catch (Exception)
         {

@@ -1,7 +1,8 @@
 namespace Framelo.Core;
 
 /// <summary>What the platform layer learns by opening a media file.</summary>
-public sealed record MediaFacts(double Duration, int PixelWidth, int PixelHeight, bool HasAudio, bool HasVideo);
+public sealed record MediaFacts(double Duration, int PixelWidth, int PixelHeight, bool HasAudio, bool HasVideo,
+    string? VideoCodec = null, double FrameRate = 0);
 
 /// <summary>Opens media files. Implemented with Media Foundation on Windows; faked in tests.</summary>
 public interface IMediaInspector
