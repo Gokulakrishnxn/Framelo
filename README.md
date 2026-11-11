@@ -18,6 +18,9 @@
   <img alt="Version" src="https://img.shields.io/badge/version-0.1.0-green">
 </p>
 
+> **Windows:** a native Windows 10/11 version (C#/.NET 8, WinUI 3, Windows.Graphics.Capture, Media Foundation)
+> lives in [`windows/`](windows/README.md). It shares this app's architecture and `.framelo` project format.
+
 ---
 
 ## Contents
@@ -405,6 +408,8 @@ Current verification status is tracked in [DEVELOPMENT_STATUS.md](DEVELOPMENT_ST
 | [DECISIONS.md](DECISIONS.md) | Key technical decisions and the reasons for them |
 | [TESTING.md](TESTING.md) | Running tests and the manual test checklist |
 | [DEVELOPMENT_STATUS.md](DEVELOPMENT_STATUS.md) | What is verified, what still needs checking, known limits |
+| [windows/README.md](windows/README.md) | The Windows version: features, building, testing, architecture |
+| [windows/DECISIONS.md](windows/DECISIONS.md) | Windows-specific technical decisions |
 
 ---
 
