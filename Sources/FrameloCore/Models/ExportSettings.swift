@@ -53,6 +53,8 @@ public struct ExportSettings: Codable, Hashable, Sendable {
     public var resolution: Resolution
     public var frameRate: Int
     public var quality: Quality
+    /// Written into the exported file's metadata as its author (Settings › Profile).
+    public var author: String?
 
     public init(container: Container = .mp4, codec: Codec = .h264, resolution: Resolution = .p1080,
                 frameRate: Int = 60, quality: Quality = .high) {

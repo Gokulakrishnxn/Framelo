@@ -142,6 +142,7 @@ public enum ExportService {
             throw ExportError.unsupportedSettings("\(settings.codec.displayName) at \(size.width)×\(size.height)")
         }
         writer.shouldOptimizeForNetworkUse = true
+        writer.metadata = metadataItems(author: settings.author)
         let videoInput = AVAssetWriterInput(mediaType: .video, outputSettings: videoSettings)
         videoInput.expectsMediaDataInRealTime = false
         writer.add(videoInput)
@@ -273,6 +274,22 @@ public enum ExportService {
         var published = result
         published.url = destination
         return published
+    }
+
+    static func metadataItems(author: String?) -> [AVMetadataItem] {
+        func item(_ identifier: AVMetadataIdentifier, _ value: String) -> AVMetadataItem {
+            let item = AVMutableMetadataItem()
+            item.identifier = identifier
+            item.value = value as NSString
+            return item
+        }
+        var items = [item(.commonIdentifierSoftware, "Framelo"),
+                     item(.commonIdentifierCreationDate, ISO8601DateFormatter().string(from: Date()))]
+        if let author = author?.trimmingCharacters(in: .whitespaces), !author.isEmpty {
+            items.append(item(.commonIdentifierAuthor, author))
+            items.append(item(.commonIdentifierArtist, author))
+        }
+        return items
     }
 
     static func videoSettings(_ settings: ExportSettings, width: Int, height: Int) -> [String: Any] {

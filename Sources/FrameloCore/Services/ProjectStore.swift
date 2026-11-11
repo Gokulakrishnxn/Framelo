@@ -6,7 +6,17 @@ public struct LibraryLocation: Sendable, Hashable {
 
     public init(root: URL) { self.root = root }
 
+    /// UserDefaults key holding a custom library folder chosen in Settings › Storage.
+    public static let customPathKey = "library.path"
+
     public static var standard: LibraryLocation {
+        if let custom = UserDefaults.standard.string(forKey: customPathKey), !custom.isEmpty {
+            return LibraryLocation(root: URL(fileURLWithPath: custom, isDirectory: true))
+        }
+        return defaultLocation
+    }
+
+    public static var defaultLocation: LibraryLocation {
         let movies = FileManager.default.urls(for: .moviesDirectory, in: .userDomainMask).first
             ?? FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Movies")
         return LibraryLocation(root: movies.appendingPathComponent("Framelo", isDirectory: true))
