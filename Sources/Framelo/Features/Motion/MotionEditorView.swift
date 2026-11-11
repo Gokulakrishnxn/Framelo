@@ -112,7 +112,6 @@ struct MotionEditorView: View {
         .padding(Theme.xl)
         .frame(width: 820, height: 620)
         .background(Theme.panel)
-        .preferredColorScheme(.dark)
         .onAppear {
             if case .zoom(let id) = model.selection { selected = id }
         }

@@ -42,6 +42,13 @@ final class HotKeyCenter {
         }
     }
 
+    /// Removes every registered shortcut (Settings › General › Global shortcuts off).
+    func unregisterAll() {
+        references.forEach { UnregisterEventHotKey($0) }
+        references.removeAll()
+        handlers.removeAll()
+    }
+
     fileprivate func fire(_ id: UInt32) {
         handlers[id]?()
     }

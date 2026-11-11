@@ -7,6 +7,7 @@ import UniformTypeIdentifiers
 /// Export screen: settings, destination, progress, cancellation and the result.
 struct ExportView: View {
     var model: EditorModel
+    @Environment(AppState.self) private var app
     @Environment(\.dismiss) private var dismiss
     @State private var settings = ExportSettings()
     @State private var destination: URL?
@@ -49,7 +50,6 @@ struct ExportView: View {
         .padding(Theme.xl)
         .frame(width: 720)
         .background(Theme.panel)
-        .preferredColorScheme(.dark)
         .interactiveDismissDisabled(isExporting)
         .onAppear {
             settings = model.project.settings.export
@@ -151,7 +151,11 @@ struct ExportView: View {
         let panel = NSSavePanel()
         panel.allowedContentTypes = [settings.container == .mp4 ? .mpeg4Movie : .quickTimeMovie]
         panel.nameFieldStringValue = model.project.name + "." + settings.container.fileExtension
-        if let destination { panel.directoryURL = destination.deletingLastPathComponent() }
+        if let destination {
+            panel.directoryURL = destination.deletingLastPathComponent()
+        } else if let folder = app.preferences.exportFolder {
+            panel.directoryURL = URL(fileURLWithPath: folder, isDirectory: true)
+        }
         panel.canCreateDirectories = true
         guard panel.runModal() == .OK, let url = panel.url else { return nil }
         destination = url
@@ -168,7 +172,8 @@ struct ExportView: View {
         failure = nil
         progress = 0
         let (project, package, cursors) = model.sourceForExport
-        let settings = settings
+        var settings = settings
+        settings.author = app.preferences.exportAuthor
         let temp = model.store.location.exportTempDirectory
         task = Task {
             defer { task = nil }

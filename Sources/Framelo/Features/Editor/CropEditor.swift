@@ -86,7 +86,6 @@ struct CropEditor: View {
         .padding(24)
         .frame(width: 980, height: 720)
         .background(Theme.panel)
-        .preferredColorScheme(.dark)
         .onAppear { crop = model.project.settings.screen.effectiveCrop }
         .task { await loadFrame() }
     }

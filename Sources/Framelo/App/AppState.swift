@@ -28,6 +28,7 @@ final class AppState {
 
     let store = ProjectStore()
     let recorder: RecordingController
+    let preferences = Preferences()
 
     init() {
         recorder = RecordingController(store: store)
@@ -59,9 +60,9 @@ final class AppState {
         }
         await refresh()
         refreshPermissions()
-        registerHotKeys()
+        applyHotKeyPreference()
         let remaining = Self.splashDuration - (ContinuousClock.now - started)
-        if remaining > .zero { try? await Task.sleep(for: remaining) }
+        if remaining > .zero, preferences.showSplash { try? await Task.sleep(for: remaining) }
         withAnimation(.easeInOut(duration: 0.45)) { route = .dashboard }
         // `Framelo --import <video>` opens a video straight into the editor (handy for scripting and testing).
         let arguments = CommandLine.arguments
@@ -74,7 +75,9 @@ final class AppState {
         isBusy = true
         defer { isBusy = false }
         do {
-            let project = try await MediaImporter.importVideo(url, store: store)
+            var project = try await MediaImporter.importVideo(url, store: store)
+            preferences.applyDefaults(to: &project)
+            try await store.save(project)
             await refresh()
             await openEditor(project)
         } catch {
@@ -96,6 +99,12 @@ final class AppState {
             permissions[kind] = status
             if status != .granted { NSWorkspace.shared.open(kind.settingsURL) }
         }
+    }
+
+    /// Registers or removes the global shortcuts according to Settings › General.
+    func applyHotKeyPreference() {
+        HotKeyCenter.shared.unregisterAll()
+        if preferences.globalShortcutsEnabled { registerHotKeys() }
     }
 
     private func registerHotKeys() {
@@ -145,10 +154,19 @@ final class AppState {
         }
     }
 
-    private func recordingFinished(_ project: Project, notices: [String]) async {
+    private func recordingFinished(_ recorded: Project, notices: [String]) async {
+        var project = recorded
+        preferences.applyDefaults(to: &project)
+        try? await store.save(project)
         await refresh()
-        await openEditor(project)
-        if !notices.isEmpty { notice = notices.joined(separator: "\n") }
+        if preferences.openEditorAfterRecording {
+            await openEditor(project)
+        } else {
+            withAnimation(.easeInOut(duration: 0.25)) { route = .dashboard }
+        }
+        var messages = notices
+        if !preferences.openEditorAfterRecording { messages.insert("“\(project.name)” was saved to your library.", at: 0) }
+        if !messages.isEmpty { notice = messages.joined(separator: "\n") }
         NSApp.activate(ignoringOtherApps: true)
     }
 
@@ -159,6 +177,14 @@ final class AppState {
         panel.message = "Choose a video to edit. The original file is never modified."
         guard panel.runModal() == .OK, let url = panel.url else { return }
         Task { await importVideo(at: url) }
+    }
+
+    /// Moves every project to the Trash (Settings › Privacy & Data).
+    func trashAllProjects() {
+        Task {
+            for project in projects { try? await store.trash(id: project.id) }
+            await refresh()
+        }
     }
 
     func trash(_ id: UUID) {

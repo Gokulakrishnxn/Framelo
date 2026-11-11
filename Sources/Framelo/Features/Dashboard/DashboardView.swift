@@ -143,6 +143,8 @@ struct DashboardView: View {
                 SidebarRow(symbol: "folder", title: "Open Library Folder", count: nil, isSelected: false) {
                     NSWorkspace.shared.open(app.store.location.root)
                 }
+                ProfileButton()
+                    .padding(.top, 8)
                 HStack(spacing: 6) {
                     Image(systemName: "lock.shield").font(.system(size: 10))
                     Text("Everything stays on this Mac")
@@ -457,5 +459,36 @@ struct Badge: View {
         .padding(.horizontal, 7)
         .frame(height: 20)
         .background(Capsule().fill(.black.opacity(0.6)))
+    }
+}
+
+/// Profile chip at the bottom of the sidebar; opens Settings.
+struct ProfileButton: View {
+    @Environment(AppState.self) private var app
+    @Environment(\.openSettings) private var openSettings
+    @State private var hovering = false
+
+    var body: some View {
+        Button {
+            openSettings()
+        } label: {
+            HStack(spacing: 10) {
+                AvatarView(preferences: app.preferences, size: 30)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(app.preferences.displayName.isEmpty ? "Set up your profile" : app.preferences.displayName)
+                        .font(.system(size: 12.5, weight: .semibold)).foregroundStyle(Theme.text).lineLimit(1)
+                    Text("Settings").font(.system(size: 11)).foregroundStyle(Theme.textTertiary)
+                }
+                Spacer()
+                Image(systemName: "gearshape").font(.system(size: 13)).foregroundStyle(Theme.textSecondary)
+            }
+            .padding(8)
+            .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Color.primary.opacity(hovering ? 0.06 : 0.03)))
+            .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).strokeBorder(Theme.border))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .onHover { hovering = $0 }
+        .help("Profile and settings (⌘,)")
     }
 }

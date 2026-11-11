@@ -27,7 +27,8 @@ struct FrameloApp: App {
             RootView()
                 .environment(app)
                 .frame(minWidth: 1080, minHeight: 680)
-                .preferredColorScheme(.dark)
+                .preferredColorScheme(app.preferences.theme.colorScheme)
+                .id(app.preferences.revision)
                 .task { await app.bootstrap() }
         }
         .windowStyle(.hiddenTitleBar)
@@ -68,6 +69,13 @@ struct FrameloApp: App {
                 }
                 .disabled(app.editor == nil)
             }
+        }
+
+        Settings {
+            SettingsView()
+                .environment(app)
+                .preferredColorScheme(app.preferences.theme.colorScheme)
+                .id(app.preferences.revision)
         }
 
         MenuBarExtra {
