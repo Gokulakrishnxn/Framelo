@@ -1,0 +1,16 @@
+<UserControl
+    x:Class="Framelo.App.Controls.LogoMark"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Width="32" Height="32">
+    <!-- White outlined monitor on teal, drawn as vectors so it is sharp at any DPI. -->
+    <Viewbox>
+        <Grid Width="64" Height="64">
+            <Rectangle RadiusX="14" RadiusY="14" Fill="{StaticResource BrandTealBrush}" />
+            <Rectangle Width="36" Height="26" Margin="0,15,0,0" VerticalAlignment="Top"
+                       Stroke="White" StrokeThickness="4" RadiusX="2" RadiusY="2" />
+            <Rectangle Width="4" Height="6" Margin="0,41,0,0" VerticalAlignment="Top" Fill="White" />
+            <Rectangle Width="18" Height="3" Margin="0,47,0,0" VerticalAlignment="Top" Fill="White" RadiusX="1.5" RadiusY="1.5" />
+        </Grid>
+    </Viewbox>
+</UserControl>
