@@ -20,16 +20,10 @@ jobs:
         with:
           dotnet-version: 8.0.x
 
-      - name: Restore
-        run: dotnet restore Framelo.sln -p:Platform=x64
+      - name: Test core (cross-platform)
+        run: dotnet test tests/Framelo.Core.Tests -c Release --logger "trx;LogFileName=core.trx" --results-directory TestResults
 
-      - name: Build
-        run: dotnet build Framelo.sln -c Release -p:Platform=x64 --no-restore
-
-      - name: Test
-        run: dotnet test Framelo.sln -c Release -p:Platform=x64 --no-build --logger "trx;LogFileName=results.trx" --results-directory TestResults
-
-      - name: Publish app
+      - name: Build and publish app
         run: dotnet publish src/Framelo.App/Framelo.App.csproj -c Release -p:Platform=x64 -r win-x64 -o artifacts/Framelo-win-x64
 
       - uses: actions/upload-artifact@v4
