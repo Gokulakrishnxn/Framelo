@@ -16,6 +16,6 @@ public sealed partial class MainWindow : Window
         RootFrame.Navigate(typeof(DashboardPage));
     }
 
-    public void ShowDashboard() => RootFrame.Navigate(typeof(DashboardPage));
+    public void ShowDashboard(string? message = null) => RootFrame.Navigate(typeof(DashboardPage), message);
     public void Navigate(Type page, object? parameter = null) => RootFrame.Navigate(page, parameter);
 }

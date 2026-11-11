@@ -204,6 +204,22 @@ public sealed class RecordingSession : IDisposable
         }
     }
 
+    /// <summary>Stops without keeping anything: the package is deleted.</summary>
+    public void Discard()
+    {
+        lock (_gate)
+        {
+            if (State is RecordingState.Finishing or RecordingState.Finished) return;
+            State = RecordingState.Finished;
+        }
+        _heartbeat.Change(Timeout.Infinite, Timeout.Infinite);
+        var end = _clock.SessionTime(HostClock.Now) ?? 0;
+        try { _screen.Stop(end); } catch (Exception) { }
+        try { _mic?.Stop(end); _system?.Stop(end); } catch (Exception) { }
+        DisposeRecorders();
+        try { Directory.Delete(_package, recursive: true); } catch (Exception) { /* RecoveryService tidies it up later */ }
+    }
+
     private void UpdateOffsets()
     {
         if (_screen.StartOffset is double s) _journal.SetOffset(s, JournalTrackKind.Screen);

@@ -14,10 +14,16 @@ public partial class App : Application
         UnhandledException += (_, e) => Log.Error("Unhandled", e.Exception);
     }
 
+    private static async Task RecoverAtLaunch()
+    {
+        if (await Navigation.RecoverAsync() is string message) MainWindow.ShowDashboard(message);
+    }
+
     protected override void OnLaunched(LaunchActivatedEventArgs args)
     {
         Services = AppServices.Create();
         MainWindow = new MainWindow();
         MainWindow.Activate();
+        _ = RecoverAtLaunch();
     }
 }
