@@ -3,22 +3,33 @@ import SwiftUI
 
 /// Framelo's design tokens: one place for colour, type, spacing and radii.
 enum Theme {
-    // Colour
-    static let background = Color(hex: 0x0D0D0F)
-    static let panel = Color(hex: 0x151517)
-    static let raised = Color(hex: 0x1D1D21)
-    static let control = Color(hex: 0x26262B)
-    static let border = Color.white.opacity(0.08)
-    static let borderStrong = Color.white.opacity(0.16)
-    static let text = Color.white.opacity(0.92)
-    static let textSecondary = Color.white.opacity(0.56)
-    static let textTertiary = Color.white.opacity(0.34)
-    static let accent = Color(hex: 0x7C5CFF)
+    // Colour — every token adapts to light and dark appearance.
+    static let background = adaptive(dark: 0x0D0D0F, light: 0xF4F4F6)
+    static let panel = adaptive(dark: 0x151517, light: 0xFFFFFF)
+    static let raised = adaptive(dark: 0x1D1D21, light: 0xF0F0F3)
+    static let control = adaptive(dark: 0x26262B, light: 0xE5E5EA)
+    static let border = adaptive(dark: 0xFFFFFF, darkAlpha: 0.08, light: 0x000000, lightAlpha: 0.09)
+    static let borderStrong = adaptive(dark: 0xFFFFFF, darkAlpha: 0.16, light: 0x000000, lightAlpha: 0.18)
+    static let text = adaptive(dark: 0xFFFFFF, darkAlpha: 0.92, light: 0x000000, lightAlpha: 0.88)
+    static let textSecondary = adaptive(dark: 0xFFFFFF, darkAlpha: 0.56, light: 0x000000, lightAlpha: 0.58)
+    static let textTertiary = adaptive(dark: 0xFFFFFF, darkAlpha: 0.34, light: 0x000000, lightAlpha: 0.38)
+    /// The user's chosen accent colour (Settings › Appearance).
+    static var accent: Color { Color(hex: AccentChoice.current.hex) }
     static let danger = Color(hex: 0xFF453A)
     static let success = Color(hex: 0x30D158)
     static let zoomTint = Color(hex: 0x5E9BFF)
     static let autoZoomTint = Color(hex: 0x39C6B0)
     static let textTint = Color(hex: 0xF2A33C)
+
+    private static func adaptive(dark: UInt32, darkAlpha: CGFloat = 1, light: UInt32, lightAlpha: CGFloat = 1) -> Color {
+        func color(_ hex: UInt32, _ alpha: CGFloat) -> NSColor {
+            NSColor(srgbRed: CGFloat((hex >> 16) & 0xFF) / 255, green: CGFloat((hex >> 8) & 0xFF) / 255,
+                    blue: CGFloat(hex & 0xFF) / 255, alpha: alpha)
+        }
+        return Color(nsColor: NSColor(name: nil) { appearance in
+            appearance.bestMatch(from: [.darkAqua, .aqua]) == .aqua ? color(light, lightAlpha) : color(dark, darkAlpha)
+        })
+    }
 
     // Spacing
     static let xs: CGFloat = 4
@@ -236,18 +247,26 @@ struct ColorRow: View {
     }
 }
 
-/// The Framelo mark: a rounded frame with a play-shaped lens.
+/// The Framelo mark: a bold, outlined screen on a stand, on teal.
 struct LogoMark: View {
     var size: CGFloat = 28
 
     var body: some View {
+        let line = max(size * 0.035, 1)
         ZStack {
-            RoundedRectangle(cornerRadius: size * 0.28, style: .continuous)
-                .fill(LinearGradient(colors: [Color(hex: 0x8B6CFF), Color(hex: 0x5B3DF5)], startPoint: .topLeading, endPoint: .bottomTrailing))
-            RoundedRectangle(cornerRadius: size * 0.14, style: .continuous)
-                .strokeBorder(Color.white.opacity(0.95), lineWidth: size * 0.075)
-                .padding(size * 0.2)
-            Circle().fill(Color.white).frame(width: size * 0.17, height: size * 0.17)
+            RoundedRectangle(cornerRadius: size * 0.225, style: .continuous)
+                .fill(Color(hex: 0x00D1BF))
+            VStack(spacing: size * 0.06) {
+                RoundedRectangle(cornerRadius: size * 0.1, style: .continuous)
+                    .fill(.white)
+                    .overlay(RoundedRectangle(cornerRadius: size * 0.1, style: .continuous).strokeBorder(.black, lineWidth: line))
+                    .frame(width: size * 0.62, height: size * 0.46)
+                Capsule()
+                    .fill(.white)
+                    .overlay(Capsule().strokeBorder(.black, lineWidth: line * 0.85))
+                    .frame(width: size * 0.24, height: size * 0.075)
+            }
+            .offset(y: size * 0.03)
         }
         .frame(width: size, height: size)
     }

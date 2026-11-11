@@ -15,23 +15,24 @@ func draw(_ pixels: Int) -> Data? {
     // macOS icon grid: the tile fills ~80 % of the canvas.
     let inset = s * 0.1
     let tile = NSRect(x: inset, y: inset, width: s - inset * 2, height: s - inset * 2)
+    let t = tile.width
     let shadow = NSShadow()
-    shadow.shadowColor = NSColor.black.withAlphaComponent(0.35)
+    shadow.shadowColor = NSColor.black.withAlphaComponent(0.3)
     shadow.shadowBlurRadius = s * 0.025
     shadow.shadowOffset = NSSize(width: 0, height: -s * 0.012)
     shadow.set()
-    let shape = NSBezierPath(roundedRect: tile, xRadius: tile.width * 0.225, yRadius: tile.width * 0.225)
-    NSGradient(starting: NSColor(srgbRed: 0.55, green: 0.42, blue: 1, alpha: 1),
-               ending: NSColor(srgbRed: 0.33, green: 0.2, blue: 0.93, alpha: 1))?.draw(in: shape, angle: -60)
+    NSColor(srgbRed: 0.0, green: 0.82, blue: 0.75, alpha: 1).setFill()
+    NSBezierPath(roundedRect: tile, xRadius: t * 0.225, yRadius: t * 0.225).fill()
     NSShadow().set()
-    let frame = tile.insetBy(dx: tile.width * 0.22, dy: tile.width * 0.22)
-    let ring = NSBezierPath(roundedRect: frame, xRadius: frame.width * 0.16, yRadius: frame.width * 0.16)
-    ring.lineWidth = tile.width * 0.07
-    NSColor.white.setStroke()
-    ring.stroke()
-    let dot = tile.width * 0.15
-    NSColor.white.setFill()
-    NSBezierPath(ovalIn: NSRect(x: tile.midX - dot / 2, y: tile.midY - dot / 2, width: dot, height: dot)).fill()
+    // The Framelo mark: a bold, outlined screen on a stand.
+    func outlined(_ path: NSBezierPath, _ width: CGFloat) {
+        NSColor.white.setFill(); path.fill()
+        NSColor.black.setStroke(); path.lineWidth = width; path.lineJoinStyle = .round; path.stroke()
+    }
+    let screen = NSRect(x: tile.minX + t * 0.19, y: tile.minY + t * 0.27, width: t * 0.62, height: t * 0.46)
+    outlined(NSBezierPath(roundedRect: screen, xRadius: t * 0.1, yRadius: t * 0.1), t * 0.035)
+    let stand = NSRect(x: tile.midX - t * 0.12, y: tile.minY + t * 0.13, width: t * 0.24, height: t * 0.075)
+    outlined(NSBezierPath(roundedRect: stand, xRadius: t * 0.0375, yRadius: t * 0.0375), t * 0.03)
     NSGraphicsContext.restoreGraphicsState()
     return rep.representation(using: .png, properties: [:])
 }
