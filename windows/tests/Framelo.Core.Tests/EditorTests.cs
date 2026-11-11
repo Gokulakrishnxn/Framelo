@@ -85,3 +85,24 @@ public class EditorSessionTests
         Assert.Equal(2, store.Load(p.Id).Timeline.VideoClips.Count); // saved on dispose
     }
 }
+
+public class PreferencesTests
+{
+    [Fact]
+    public void DefaultsApplyToNewProjectsAndPreferencesRoundTrip()
+    {
+        var prefs = new Preferences { DefaultPresetId = "graphite", AutoZoomByDefault = false, CursorSmoothingDefault = 0.2, ExportFrameRate = 30, DisplayName = "Ada Lovelace" };
+        var p = TestData.Project();
+        prefs.ApplyTo(p);
+        Assert.Equal(BackgroundKind.Solid, p.Settings.Background.Kind);
+        Assert.False(p.Settings.Motion.AutoZoomEnabled);
+        Assert.Equal(0.2, p.Settings.Cursor.Smoothing);
+        Assert.Equal(30, p.Settings.Export.FrameRate);
+        Assert.Equal("Ada Lovelace", p.Settings.Export.Author);
+        Assert.Equal("AL", prefs.Initials);
+        var path = Path.Combine(TestData.TempDir(), "prefs.json");
+        prefs.Save(path);
+        Assert.Equal("graphite", Preferences.Load(path).DefaultPresetId);
+        Assert.Equal(ThemeChoice.Dark, Preferences.Load(Path.Combine(TestData.TempDir(), "missing.json")).Theme);
+    }
+}

@@ -69,6 +69,19 @@ public sealed class Preferences
         }
     }
 
+    /// <summary>Applies the default look, motion and export settings to a project that was just created.</summary>
+    public void ApplyTo(Project project)
+    {
+        if (StylePreset.All.FirstOrDefault(p => p.Id == DefaultPresetId) is StylePreset preset)
+        {
+            project.Settings.Background = preset.Background();
+            project.Settings.Screen = preset.Screen();
+        }
+        if (project.Sources.Any(s => s.Kind == SourceKind.Recording)) project.Settings.Motion.AutoZoomEnabled = AutoZoomByDefault;
+        project.Settings.Cursor.Smoothing = Math.Clamp(CursorSmoothingDefault, 0, 1);
+        project.Settings.Export = ExportDefaults;
+    }
+
     public static string DefaultPath => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Framelo", "preferences.json");
 
