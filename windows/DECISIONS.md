@@ -59,3 +59,10 @@ one session clock. The small capture latency of a webcam is not visible in a pic
 
 **W13. Global shortcuts use Ctrl+Shift+2 and Ctrl+Shift+3.** They mirror ⇧⌘2 on macOS. Ctrl+Shift+P was avoided
 because many Windows apps (VS Code, browsers) already use it; RegisterHotKey would take it from them.
+
+**W14. Captions use the Windows speech recogniser (System.Speech).** The macOS app transcribes on the device with
+Apple's recogniser. The Windows equivalent that works offline on an audio file is the SAPI desktop recogniser: it is
+built in, needs no download and sends nothing anywhere. Its accuracy is lower than modern neural models and it adds
+no punctuation, so every line stays editable. A local Whisper model would be more accurate but means a large model
+download and native libraries; it is left as an optional upgrade behind the same `TranscribedSegment` interface.
+Word times are offsets within each recognised phrase, added to the phrase's start.

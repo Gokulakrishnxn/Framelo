@@ -75,6 +75,9 @@ instructions and applied only when the video is rendered.
 - Background presets (gradients, solid colours), padding, corner radius, shadow, inset and an optional window frame.
 - Cursor size, smoothing, click ripples or rings, hide-when-idle.
 - Camera bubble: circle or rounded, size, corner, mirroring, and shrinking while the screen is zoomed.
+- Text overlays: titles and labels with size, weight, colour, background, position and fade, on their own lane.
+- Captions generated offline from your microphone with Windows speech recognition, then corrected line by line,
+  re-timed on the captions lane, and styled (size, position, background).
 - Per-track volume and mute, project fade in and fade out.
 - Unlimited undo and redo; every edit is validated before it is applied, and the project autosaves.
 
@@ -124,9 +127,9 @@ dotnet test tests/Framelo.Platform.Tests    # Media Foundation encode/decode, en
 
 | Suite | What it covers |
 |---|---|
-| Core | Exact time, project JSON compatibility with a real macOS `project.json`, split/trim/ripple, validation, undo coalescing, journal and recovery, audio clock alignment, auto-zoom clustering and merging, manual-wins resolution, camera continuity for every easing, cursor smoothing, frame-state determinism, export planning and verification, MP4 metadata |
+| Core | Caption line grouping and placement through edits, text and caption commands, exact time, project JSON compatibility with a real macOS `project.json`, split/trim/ripple, validation, undo coalescing, journal and recovery, audio clock alignment, auto-zoom clustering and merging, manual-wins resolution, camera continuity for every easing, cursor smoothing, frame-state determinism, export planning and verification, MP4 metadata |
 | Rendering | Background, card, zoom magnification, cursor and ripple drawing, gaps, and byte-for-byte equality between preview and export compositors |
-| Platform | H.264 + AAC MP4 and fragmented MP4 writing, WAV repair, frame-accurate decoding, audio decoding, a full record-files → edit → export → verify run, cancellation clean-up, and recovery from real media files |
+| Platform | Transcription of synthesised speech (words and timings), H.264 + AAC MP4 and fragmented MP4 writing, WAV repair, frame-accurate decoding, audio decoding, a full record-files → edit → export → verify run, cancellation clean-up, and recovery from real media files |
 
 Screen capture itself needs an interactive desktop, which CI runners do not have; it is covered by the manual
 checklist below.
@@ -140,7 +143,8 @@ checklist below.
    recording that opens and plays.
 4. Split, trim, delete and undo; drag a zoom; change the background; play with audio.
 5. Export 1080p60 H.264 and open the file in the Films & TV app.
-6. With another app focused, press Ctrl+Shift+2 to start, Ctrl+Shift+3 to pause and resume, Ctrl+Shift+2 to stop.
+6. Generate captions on a recording with speech; correct a line, move one on the captions lane, add a title with T.
+7. With another app focused, press Ctrl+Shift+2 to start, Ctrl+Shift+3 to pause and resume, Ctrl+Shift+2 to stop.
 
 ## Architecture
 
@@ -208,6 +212,7 @@ Imported videos are referenced by absolute path and never copied or modified.
 | Space | Play / pause |
 | S | Split at the playhead |
 | Z | Add a zoom at the playhead |
+| T | Add text at the playhead |
 | Delete | Delete the selected clip or zoom |
 | Ctrl+Z / Ctrl+Shift+Z (Ctrl+Y) | Undo / redo |
 | ← / → | Previous / next frame (Shift: one second) |
@@ -219,6 +224,8 @@ Imported videos are referenced by absolute path and never copied or modified.
 ## Privacy
 
 - Recordings, projects and exports stay on your PC. Framelo makes no network requests.
+- Captions are recognised on your PC by the speech recogniser built into Windows; no audio is uploaded and no model
+  is downloaded.
 - Framelo's own windows are hidden from captures (Settings › Privacy & Data).
 - Deleting a project moves it to the Recycle Bin.
 
@@ -226,7 +233,8 @@ Imported videos are referenced by absolute path and never copied or modified.
 
 - Built and unit/integration-tested on GitHub Actions; screen capture, the capture bar and the editor UI still
   need the manual checklist on real hardware.
-- Captions and text overlays are rendered and preserved, but there is no caption transcription or text editor UI yet.
+- Caption accuracy is that of the Windows desktop dictation recogniser, which is below Apple's on-device recognition
+  and adds no punctuation. It needs a Windows speech language installed (Settings › Time & language › Speech).
 - On Windows 10 the yellow capture border cannot be hidden (Windows 11 hides it).
 - Compositing runs on the CPU with SkiaSharp; 4K exports are slower than real time.
 
