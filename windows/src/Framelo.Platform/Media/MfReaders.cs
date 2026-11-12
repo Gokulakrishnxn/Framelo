@@ -84,7 +84,7 @@ public sealed class MfVideoReader : IDisposable
         }
     }
 
-    private unsafe VideoFrame? Read()
+    private VideoFrame? Read()
     {
         if (_ended) return null;
         for (var guard = 0; guard < 1000; guard++)
@@ -93,21 +93,7 @@ public sealed class MfVideoReader : IDisposable
             if ((flags & (SourceReaderFlag.EndOfStream | SourceReaderFlag.Error)) != 0 && sample == null) { _ended = true; return null; }
             if (sample == null) continue;
             var duration = sample.SampleDuration;
-            var pixels = new byte[Width * Height * 4];
-            using var buffer = sample.ConvertToContiguousBuffer();
-            using var buffer2D = buffer.QueryInterfaceOrNull<IMF2DBuffer>();
-            if (buffer2D != null)
-            {
-                buffer2D.Lock2D(out var scan0, out var pitch);
-                try { CopyRows((byte*)scan0, pitch, pixels); }
-                finally { buffer2D.Unlock2D(); }
-            }
-            else
-            {
-                buffer.Lock(out var data, out _, out _);
-                try { CopyRows((byte*)data, Width * 4, pixels); }
-                finally { buffer.Unlock(); }
-            }
+            var pixels = MfFrames.CopyBgra(sample, Width, Height);
             if ((flags & SourceReaderFlag.EndOfStream) != 0) _ended = true;
             return new VideoFrame(Width, Height, pixels, time / 10_000_000.0, duration > 0 ? duration / 10_000_000.0 : 1.0 / 60);
         }
@@ -115,23 +101,51 @@ public sealed class MfVideoReader : IDisposable
         return null;
     }
 
-    private unsafe void CopyRows(byte* scan0, int pitch, byte[] target)
+    public void Dispose()
     {
-        var row = Width * 4;
+        lock (_gate) _reader.Dispose();
+    }
+}
+
+/// <summary>Copies an RGB32 sample into a tightly packed, top-down, opaque BGRA array.</summary>
+internal static class MfFrames
+{
+    public static unsafe byte[] CopyBgra(IMFSample sample, int width, int height)
+    {
+        var pixels = new byte[width * height * 4];
+        using var buffer = sample.ConvertToContiguousBuffer();
+        using var buffer2D = buffer.QueryInterfaceOrNull<IMF2DBuffer>();
+        if (buffer2D != null)
+        {
+            buffer2D.Lock2D(out var scan0, out var pitch);
+            try { CopyRows((byte*)scan0, pitch, pixels, width, height); }
+            finally { buffer2D.Unlock2D(); }
+        }
+        else
+        {
+            buffer.Lock(out var data, out _, out var length);
+            try
+            {
+                // Without a 2D buffer the pitch is the row size; guard against short buffers.
+                if (length >= width * height * 4) CopyRows((byte*)data, width * 4, pixels, width, height);
+            }
+            finally { buffer.Unlock(); }
+        }
+        return pixels;
+    }
+
+    private static unsafe void CopyRows(byte* scan0, int pitch, byte[] target, int width, int height)
+    {
+        var row = width * 4;
         fixed (byte* dst = target)
         {
-            for (var y = 0; y < Height; y++)
+            for (var y = 0; y < height; y++)
             {
                 var s = scan0 + (long)y * pitch;   // a negative pitch walks a bottom-up image upwards
                 Buffer.MemoryCopy(s, dst + (long)y * row, row, row);
                 for (var x = 3; x < row; x += 4) dst[(long)y * row + x] = 255;   // RGB32's X byte → opaque alpha
             }
         }
-    }
-
-    public void Dispose()
-    {
-        lock (_gate) _reader.Dispose();
     }
 }
 

@@ -31,6 +31,7 @@ internal sealed class Inspector(EditorPage page)
             case "zoom": Zoom(); break;
             case "clip": Clip(); break;
             case "audio": Audio(); break;
+            case "camera": Camera(); break;
         }
         Extend?.Invoke(section, this, Model);
     }
@@ -163,6 +164,22 @@ internal sealed class Inspector(EditorPage page)
         SliderRow("Volume", 0, 2, c.Volume, "P0", v => Edit(EditCommand.Timeline("Clip Volume", t => t.VideoClips.First(x => x.Id == c.Id).Volume = v, $"volume-{c.Id}")));
         Toggle("Mute", c.IsMuted, v => Edit(EditCommand.Timeline("Mute Clip", t => t.VideoClips.First(x => x.Id == c.Id).IsMuted = v)));
         Action("Close gaps", () => Edit(EditCommand.CloseGaps()));
+    }
+
+    private void Camera()
+    {
+        Header("Camera");
+        if (!Model.Project.Sources.Any(s => s.Camera != null)) { Note("This project has no camera recording. Turn on the camera in the capture bar to record one."); return; }
+        var c = S.Camera;
+        Toggle("Show camera", c.IsVisible, v => Setting("Camera Visibility", s => s.Camera.IsVisible = v, "cam-visible"));
+        Combo("Shape", new[] { "Circle", "Rounded" }, (int)c.Shape, i => Setting("Camera Shape", s => s.Camera.Shape = (CameraShape)i, "cam-shape"));
+        SliderRow("Size", 0.1, 0.5, c.Size, "P0", v => Setting("Camera Size", s => s.Camera.Size = v, "cam-size"));
+        var corners = new (string Name, double X, double Y)[] { ("Bottom right", 0.88, 0.82), ("Bottom left", 0.12, 0.82), ("Top right", 0.88, 0.18), ("Top left", 0.12, 0.18) };
+        var nearest = Array.FindIndex(corners, k => Math.Abs(k.X - c.PositionX) < 0.01 && Math.Abs(k.Y - c.PositionY) < 0.01);
+        Combo("Position", corners.Select(k => k.Name).ToArray(), nearest,
+            i => Setting("Camera Position", s => { s.Camera.PositionX = corners[i].X; s.Camera.PositionY = corners[i].Y; }, "cam-pos"));
+        Toggle("Mirror", c.IsMirrored, v => Setting("Mirror Camera", s => s.Camera.IsMirrored = v, "cam-mirror"));
+        SliderRow("Shrink while zoomed", 0.4, 1, c.ZoomedScale, "P0", v => Setting("Camera Zoom Size", s => s.Camera.ZoomedScale = v, "cam-zoom"));
     }
 
     private void Audio()

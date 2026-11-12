@@ -14,11 +14,12 @@ namespace Framelo.App.Views;
 /// </summary>
 public sealed partial class CaptureBarWindow : Window
 {
-    private const int BarWidth = 1010, BarHeight = 64, RecordingWidth = 420;
+    private const int BarWidth = 1060, BarHeight = 64, RecordingWidth = 420;
     private readonly DispatcherQueueTimer _ticker;
     private RecordingSession? _session;
     private CaptureTarget.Region? _area;
     private string _mode = "display";
+    private string? _warning;
 
     /// <summary>Raised with the finished project, or null when the user closed the bar or discarded.</summary>
     public event Action<Project?, string?>? Finished;
@@ -43,6 +44,11 @@ public sealed partial class CaptureBarWindow : Window
         var selected = mics.ToList().FindIndex(m => m.Id == prefs.MicrophoneId);
         MicPicker.SelectedIndex = selected >= 0 ? selected : mics.ToList().FindIndex(m => m.IsDefault);
         MicPicker.IsEnabled = mics.Count > 0;
+        var cameras = CameraRecorder.Devices();
+        CameraToggle.IsChecked = prefs.CaptureCamera && cameras.Count > 0;
+        CameraToggle.IsEnabled = cameras.Count > 0;
+        ToolTipService.SetToolTip(CameraToggle, cameras.Count == 0 ? "No camera found" :
+            $"Camera: {(cameras.FirstOrDefault(c => c.Id == prefs.CameraId) ?? cameras[0]).Name}");
         LoadSources();
     }
 
@@ -127,11 +133,13 @@ public sealed partial class CaptureBarWindow : Window
         prefs.CaptureMicrophone = MicToggle.IsChecked == true;
         prefs.CaptureSystemAudio = SystemAudioToggle.IsChecked == true;
         prefs.MicrophoneId = mics != null && MicPicker.SelectedIndex >= 0 ? mics[MicPicker.SelectedIndex].Id : null;
+        prefs.CaptureCamera = CameraToggle.IsChecked == true;
         App.Services.SavePreferences();
         var config = new RecordingConfig
         {
             Target = target, FrameRate = prefs.FrameRate, CaptureMicrophone = prefs.CaptureMicrophone,
             MicrophoneId = prefs.MicrophoneId, CaptureSystemAudio = prefs.CaptureSystemAudio, CountdownSeconds = prefs.CountdownSeconds,
+            CaptureCamera = prefs.CaptureCamera, CameraId = prefs.CameraId,
         };
 
         SetupPanel.Visibility = Visibility.Collapsed;
@@ -161,6 +169,8 @@ public sealed partial class CaptureBarWindow : Window
             return;
         }
         _session.Failed += reason => DispatcherQueue.TryEnqueue(() => { StatusText.Text = reason; });
+        if (_session.Warning is string warning) ToolTipService.SetToolTip(RecDot, warning);
+        _warning = _session.Warning;
         RecordingPanel.Visibility = Visibility.Visible;
         _ticker.Start();
     }
@@ -204,7 +214,7 @@ public sealed partial class CaptureBarWindow : Window
         try
         {
             var project = await Task.Run(session.Stop);
-            Finish(project, null);
+            Finish(project, _warning);
         }
         catch (Exception ex)
         {

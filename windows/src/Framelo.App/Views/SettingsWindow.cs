@@ -94,6 +94,11 @@ public sealed class SettingsWindow : Window
         var names = new[] { "System default" }.Concat(mics.Select(m => m.Name)).ToArray();
         Combo("Microphone", names, Math.Max(0, mics.ToList().FindIndex(m => m.Id == Prefs.MicrophoneId) + 1),
             i => { Prefs.MicrophoneId = i == 0 ? null : mics[i - 1].Id; Save(); });
+        var cameras = CameraRecorder.Devices();
+        if (cameras.Count > 0)
+            Combo("Camera", cameras.Select(c => c.Name).ToArray(), Math.Max(0, cameras.ToList().FindIndex(c => c.Id == Prefs.CameraId)),
+                i => { Prefs.CameraId = cameras[i].Id; Save(); });
+        Toggle("Record camera", Prefs.CaptureCamera, v => { Prefs.CaptureCamera = v; Save(); });
         Toggle("Record microphone", Prefs.CaptureMicrophone, v => { Prefs.CaptureMicrophone = v; Save(); });
         Toggle("Record system audio", Prefs.CaptureSystemAudio, v => { Prefs.CaptureSystemAudio = v; Save(); });
         Toggle("Open the editor when a recording stops", Prefs.OpenEditorAfterRecording, v => { Prefs.OpenEditorAfterRecording = v; Save(); });

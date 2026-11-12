@@ -29,6 +29,9 @@
             <ToggleButton x:Name="SystemAudioToggle" ToolTipService.ToolTip="System audio" Padding="8,6">
                 <FontIcon Glyph="&#xE767;" FontSize="16" />
             </ToggleButton>
+            <ToggleButton x:Name="CameraToggle" ToolTipService.ToolTip="Camera" Padding="8,6">
+                <FontIcon Glyph="&#xE714;" FontSize="16" />
+            </ToggleButton>
             <Button x:Name="RecordButton" Click="OnRecord" Style="{StaticResource PrimaryButton}" ToolTipService.ToolTip="Record (Ctrl+Shift+2)">
                 <StackPanel Orientation="Horizontal" Spacing="8">
                     <Ellipse Width="10" Height="10" Fill="#FFFF453A" />

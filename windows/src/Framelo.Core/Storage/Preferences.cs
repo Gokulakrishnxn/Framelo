@@ -25,6 +25,8 @@ public sealed class Preferences
     public bool CaptureSystemAudio { get; set; } = true;
     public bool CaptureMicrophone { get; set; } = true;
     public string? MicrophoneId { get; set; }
+    public bool CaptureCamera { get; set; }
+    public string? CameraId { get; set; }
     public bool OpenEditorAfterRecording { get; set; } = true;
     public bool GlobalShortcutsEnabled { get; set; } = true;
 

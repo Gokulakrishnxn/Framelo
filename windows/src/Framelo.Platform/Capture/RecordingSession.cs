@@ -22,6 +22,9 @@ public sealed class RecordingSession : IDisposable
     private readonly ScreenRecorder _screen;
     private readonly AudioRecorder? _mic;
     private readonly AudioRecorder? _system;
+    private readonly CameraRecorder? _camera;
+    /// <summary>Set when a requested device could not be opened; the recording continues without it.</summary>
+    public string? Warning { get; private set; }
     private readonly CursorRecorder _cursor;
     private readonly Timer _heartbeat;
     private readonly object _gate = new();
@@ -51,12 +54,21 @@ public sealed class RecordingSession : IDisposable
         if (config.CaptureMicrophone)
         {
             try { _mic = AudioRecorder.Microphone(_clock, config.MicrophoneId); }
-            catch (Exception) { _mic = null; /* no microphone: record without it */ }
+            catch (Exception) { _mic = null; Warning = "The microphone could not be opened, so this recording has no microphone track."; }
         }
         if (config.CaptureSystemAudio)
         {
             try { _system = AudioRecorder.SystemAudio(_clock); }
             catch (Exception) { _system = null; }
+        }
+        if (config.CaptureCamera)
+        {
+            try { _camera = new CameraRecorder(_clock, config.CameraId); }
+            catch (Exception)
+            {
+                _camera = null;
+                Warning = "The camera could not be opened. Check Settings › Privacy & security › Camera › “Let desktop apps access your camera”.";
+            }
         }
         _cursor = new CursorRecorder(Path.Combine(_package, ProjectPackage.CursorFile), _clock, area);
         _heartbeat = new Timer(_ => WriteJournal(), null, Timeout.Infinite, Timeout.Infinite);
@@ -87,6 +99,12 @@ public sealed class RecordingSession : IDisposable
         _journal.Tracks.Add(new RecordingJournal.Track { Kind = JournalTrackKind.Screen, RelativePath = RecordingJournal.RelativePathFor(JournalTrackKind.Screen) });
         StartAudio(_mic, JournalTrackKind.Microphone, media);
         StartAudio(_system, JournalTrackKind.SystemAudio, media);
+        if (_camera != null)
+        {
+            _camera.Failed += e => Fail($"The camera stopped: {e.Message}");
+            _camera.Start(Path.Combine(media, RecordingJournal.FileName(JournalTrackKind.Camera)));
+            _journal.Tracks.Add(new RecordingJournal.Track { Kind = JournalTrackKind.Camera, RelativePath = RecordingJournal.RelativePathFor(JournalTrackKind.Camera) });
+        }
         _cursor.Start();
         _journal.State = JournalState.Recording;
         WriteJournal();
@@ -177,6 +195,7 @@ public sealed class RecordingSession : IDisposable
         _screen.Stop(end);
         _mic?.Stop(end);
         _system?.Stop(end);
+        _camera?.Stop(end);
         UpdateOffsets();
         if (_mic is { StartOffset: double micStart })
             _journal.TrackFor(JournalTrackKind.Microphone)!.RateCorrection =
@@ -217,7 +236,7 @@ public sealed class RecordingSession : IDisposable
         _heartbeat.Change(Timeout.Infinite, Timeout.Infinite);
         var end = _clock.SessionTime(HostClock.Now) ?? 0;
         try { _screen.Stop(end); } catch (Exception) { }
-        try { _mic?.Stop(end); _system?.Stop(end); } catch (Exception) { }
+        try { _mic?.Stop(end); _system?.Stop(end); _camera?.Stop(end); } catch (Exception) { }
         DisposeRecorders();
         try { Directory.Delete(_package, recursive: true); } catch (Exception) { /* RecoveryService tidies it up later */ }
     }
@@ -227,6 +246,7 @@ public sealed class RecordingSession : IDisposable
         if (_screen.StartOffset is double s) _journal.SetOffset(s, JournalTrackKind.Screen);
         if (_mic?.StartOffset is double m) _journal.SetOffset(m, JournalTrackKind.Microphone);
         if (_system?.StartOffset is double a) _journal.SetOffset(a, JournalTrackKind.SystemAudio);
+        if (_camera?.StartOffset is double c) _journal.SetOffset(c, JournalTrackKind.Camera);
     }
 
     private void WriteJournal()
@@ -266,6 +286,7 @@ public sealed class RecordingSession : IDisposable
         try { _screen.Dispose(); } catch (Exception) { }
         try { _mic?.Dispose(); } catch (Exception) { }
         try { _system?.Dispose(); } catch (Exception) { }
+        try { _camera?.Dispose(); } catch (Exception) { }
         _gpu.Dispose();
     }
 

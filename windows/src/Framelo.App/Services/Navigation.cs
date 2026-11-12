@@ -18,7 +18,7 @@ public static class Navigation
             _captureBar = null;
             if (project != null) project = await Task.Run(() => Prepare(project));
             WindowHelpers.Restore(App.MainWindow);
-            if (project != null && App.Services.Preferences.OpenEditorAfterRecording) OpenProject(project.Id);
+            if (project != null && error == null && App.Services.Preferences.OpenEditorAfterRecording) OpenProject(project.Id);
             else App.MainWindow.ShowDashboard(error ?? (project != null ? $"Saved “{project.Name}”." : null));
         };
         WindowHelpers.Minimize(App.MainWindow);

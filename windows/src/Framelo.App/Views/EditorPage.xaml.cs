@@ -242,6 +242,7 @@ public sealed partial class EditorPage : Page
         ("cursor", "", "Cursor"),
         ("zoom", "", "Zoom & motion"),
         ("clip", "", "Clip"),
+        ("camera", "\uE714", "Camera"),
         ("audio", "", "Audio"),
     };
 
