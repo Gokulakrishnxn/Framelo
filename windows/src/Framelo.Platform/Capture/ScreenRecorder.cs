@@ -24,6 +24,7 @@ public sealed class ScreenRecorder : IDisposable
     private readonly long _interval;
     private readonly object _gate = new();
     private Direct3D11CaptureFramePool? _pool;
+    private Windows.Graphics.SizeInt32 _poolSize;
     private GraphicsCaptureSession? _session;
     private ID3D11Texture2D? _staging;
     private MfWriter? _writer;
@@ -61,7 +62,8 @@ public sealed class ScreenRecorder : IDisposable
             SampleDescription = new SampleDescription(1, 0), Usage = ResourceUsage.Staging,
             CPUAccessFlags = CpuAccessFlags.Read, BindFlags = BindFlags.None,
         });
-        _pool = Direct3D11CaptureFramePool.CreateFreeThreaded(_gpu.WinRTDevice, DirectXPixelFormat.B8G8R8A8UIntNormalized, 2, _item.Size);
+        _poolSize = _item.Size;
+        _pool = Direct3D11CaptureFramePool.CreateFreeThreaded(_gpu.WinRTDevice, DirectXPixelFormat.B8G8R8A8UIntNormalized, 2, _poolSize);
         _pool.FrameArrived += OnFrame;
         _session = _pool.CreateCaptureSession(_item);
         _session.IsCursorCaptureEnabled = false;
@@ -105,9 +107,14 @@ public sealed class ScreenRecorder : IDisposable
                 _haveFrame = true;
                 StartOffset ??= t;
             }
-            // A window that changes size keeps the encoder size; the pool follows so frames stay 1:1.
-            if (frame.ContentSize.Width != _item.Size.Width || frame.ContentSize.Height != _item.Size.Height)
-                pool.Recreate(_gpu.WinRTDevice, DirectXPixelFormat.B8G8R8A8UIntNormalized, 2, frame.ContentSize);
+            // A window that changes size keeps the encoder size; the pool follows its content so frames are not
+            // clipped or padded. Compare with the pool's own size — the item's size has already changed.
+            var content = frame.ContentSize;
+            if (content.Width > 0 && content.Height > 0 && (content.Width != _poolSize.Width || content.Height != _poolSize.Height))
+            {
+                _poolSize = content;
+                pool.Recreate(_gpu.WinRTDevice, DirectXPixelFormat.B8G8R8A8UIntNormalized, 2, content);
+            }
         }
         catch (Exception e)
         {

@@ -50,6 +50,8 @@ public sealed class EditorModel : IDisposable
         Session.Changed += () =>
         {
             if (Playhead > Duration) Seek(Duration);
+            // The mix is built from the project, so restart playback on the edited timeline.
+            else if (IsPlaying) { Tick(); _playStart = Playhead; _clock.Restart(); Player.Play(Mixer, Playhead); }
             if (SelectedId is Guid id && !Exists(id)) Select(EditorSelectionKind.None, null);
         };
     }
