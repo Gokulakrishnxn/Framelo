@@ -92,30 +92,47 @@ public static class SpeechTranscriber
         }, TaskScheduler.Default).Unwrap();
     }
 
-    /// <summary>Word timings from a phrase; when the recogniser cannot give per-word audio, words share the phrase evenly.</summary>
+    /// <summary>
+    /// Word timings from a phrase. Per-word audio positions are not reliably relative to the file, so they are
+    /// taken as offsets from the phrase's first word and added to the phrase start. When the recogniser cannot
+    /// give per-word audio, words share the phrase evenly.
+    /// </summary>
     private static IEnumerable<TranscribedSegment> Words(RecognitionResult result)
     {
         if (result.Words.Count == 0 || result.Audio == null) yield break;
         var phraseStart = result.Audio.AudioPosition.TotalSeconds;
         var phraseLength = Math.Max(result.Audio.Duration.TotalSeconds, 0.05);
-        for (var i = 0; i < result.Words.Count; i++)
+        var count = result.Words.Count;
+        var timings = new (double Start, double Length)?[count];
+        try
         {
-            var word = result.Words[i];
-            var text = word.Text;
+            for (var i = 0; i < count; i++)
+            {
+                var audio = result.GetAudioForWordRange(result.Words[i], result.Words[i]);
+                timings[i] = (audio.AudioPosition.TotalSeconds, Math.Max(audio.Duration.TotalSeconds, 0.05));
+            }
+        }
+        catch (Exception)
+        {
+            Array.Clear(timings);
+        }
+        var origin = timings[0]?.Start ?? 0;
+        for (var i = 0; i < count; i++)
+        {
+            var text = result.Words[i].Text;
             if (string.IsNullOrWhiteSpace(text)) continue;
             double start, end;
-            try
+            if (timings[i] is { } t)
             {
-                var audio = result.GetAudioForWordRange(word, word);
-                start = audio.AudioPosition.TotalSeconds;
-                end = start + Math.Max(audio.Duration.TotalSeconds, 0.05);
+                start = phraseStart + Math.Clamp(t.Start - origin, 0, phraseLength);
+                end = Math.Min(start + t.Length, phraseStart + phraseLength);
             }
-            catch (Exception)
+            else
             {
-                start = phraseStart + phraseLength * i / result.Words.Count;
-                end = phraseStart + phraseLength * (i + 1) / result.Words.Count;
+                start = phraseStart + phraseLength * i / count;
+                end = phraseStart + phraseLength * (i + 1) / count;
             }
-            yield return new TranscribedSegment(text, start, end);
+            yield return new TranscribedSegment(text, start, Math.Max(end, start + 0.05));
         }
     }
 }
