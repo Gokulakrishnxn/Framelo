@@ -25,6 +25,16 @@ public static class Navigation
         _captureBar.Activate();
     }
 
+    /// <summary>Ctrl+Shift+2: open the capture bar, start recording, or stop the current recording.</summary>
+    public static void ToggleRecording()
+    {
+        if (_captureBar == null) { StartRecording(); return; }
+        _captureBar.ToggleRecording();
+    }
+
+    /// <summary>Ctrl+Shift+3: pause or resume the current recording.</summary>
+    public static void TogglePause() => _captureBar?.TogglePause();
+
     public static void OpenProject(Guid id) => OpenProjectHandler?.Invoke(id);
     public static void OpenSettings() => OpenSettingsHandler?.Invoke();
 

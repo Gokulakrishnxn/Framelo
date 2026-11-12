@@ -97,6 +97,14 @@ public sealed class SettingsWindow : Window
         Toggle("Record microphone", Prefs.CaptureMicrophone, v => { Prefs.CaptureMicrophone = v; Save(); });
         Toggle("Record system audio", Prefs.CaptureSystemAudio, v => { Prefs.CaptureSystemAudio = v; Save(); });
         Toggle("Open the editor when a recording stops", Prefs.OpenEditorAfterRecording, v => { Prefs.OpenEditorAfterRecording = v; Save(); });
+        Toggle("Global shortcuts", Prefs.GlobalShortcutsEnabled, v =>
+        {
+            Prefs.GlobalShortcutsEnabled = v;
+            Save();
+            if (!HotKeys.Apply(v)) Build("recording");
+        });
+        Note($"{HotKeys.RecordLabel} starts or stops a recording from any app; {HotKeys.PauseLabel} pauses or resumes it." +
+             (Prefs.GlobalShortcutsEnabled && !HotKeys.Apply(true) ? " One of them is already used by another app." : ""));
     }
 
     private void Editing()

@@ -29,7 +29,7 @@
             <ToggleButton x:Name="SystemAudioToggle" ToolTipService.ToolTip="System audio" Padding="8,6">
                 <FontIcon Glyph="&#xE767;" FontSize="16" />
             </ToggleButton>
-            <Button x:Name="RecordButton" Click="OnRecord" Style="{StaticResource PrimaryButton}">
+            <Button x:Name="RecordButton" Click="OnRecord" Style="{StaticResource PrimaryButton}" ToolTipService.ToolTip="Record (Ctrl+Shift+2)">
                 <StackPanel Orientation="Horizontal" Spacing="8">
                     <Ellipse Width="10" Height="10" Fill="#FFFF453A" />
                     <TextBlock Text="Record" />
@@ -44,10 +44,10 @@
             <Ellipse x:Name="RecDot" Width="12" Height="12" Fill="#FFFF453A" VerticalAlignment="Center" />
             <TextBlock x:Name="ElapsedText" Text="0:00" FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center" FontFamily="Consolas" MinWidth="64" />
             <ProgressBar x:Name="MicLevel" Width="80" Maximum="1" VerticalAlignment="Center" />
-            <Button x:Name="PauseButton" Click="OnPause" ToolTipService.ToolTip="Pause" Padding="10,6">
+            <Button x:Name="PauseButton" Click="OnPause" ToolTipService.ToolTip="Pause (Ctrl+Shift+3)" Padding="10,6">
                 <FontIcon x:Name="PauseIcon" Glyph="&#xE769;" FontSize="14" />
             </Button>
-            <Button x:Name="StopButton" Click="OnStop" Style="{StaticResource PrimaryButton}">
+            <Button x:Name="StopButton" Click="OnStop" Style="{StaticResource PrimaryButton}" ToolTipService.ToolTip="Stop (Ctrl+Shift+2)">
                 <StackPanel Orientation="Horizontal" Spacing="8">
                     <Rectangle Width="10" Height="10" Fill="White" RadiusX="2" RadiusY="2" />
                     <TextBlock Text="Stop" />

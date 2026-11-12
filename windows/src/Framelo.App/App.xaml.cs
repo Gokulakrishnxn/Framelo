@@ -30,6 +30,11 @@ public partial class App : Application
         Appearance.Register(MainWindow);
         Appearance.ApplyAccent();
         MainWindow.Activate();
+        HotKeys.Attach(MainWindow);
+        HotKeys.RecordPressed += Navigation.ToggleRecording;
+        HotKeys.PausePressed += Navigation.TogglePause;
+        if (!HotKeys.Apply(Services.Preferences.GlobalShortcutsEnabled))
+            Log.Info("A recording shortcut is already used by another app.");
         _ = RecoverAtLaunch();
     }
 }

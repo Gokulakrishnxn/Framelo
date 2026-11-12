@@ -165,6 +165,18 @@ public sealed partial class CaptureBarWindow : Window
         _ticker.Start();
     }
 
+    /// <summary>Global shortcut: record with the current choices, or stop. Ignored during the countdown and saving.</summary>
+    public void ToggleRecording()
+    {
+        if (_session != null) OnStop(this, new RoutedEventArgs());
+        else if (SetupPanel.Visibility == Visibility.Visible && RecordButton.IsEnabled) OnRecord(this, new RoutedEventArgs());
+    }
+
+    public void TogglePause()
+    {
+        if (_session != null) OnPause(this, new RoutedEventArgs());
+    }
+
     private void Tick()
     {
         if (_session == null) return;
