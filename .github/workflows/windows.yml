@@ -1,0 +1,44 @@
+name: Windows
+
+on:
+  push:
+    paths: ["windows/**", ".github/workflows/windows.yml"]
+  pull_request:
+    paths: ["windows/**", ".github/workflows/windows.yml"]
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: windows
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Test core (cross-platform)
+        run: dotnet test tests/Framelo.Core.Tests -c Release --logger "trx;LogFileName=core.trx" --results-directory TestResults
+
+      - name: Test rendering (cross-platform)
+        run: dotnet test tests/Framelo.Rendering.Tests -c Release --logger "trx;LogFileName=rendering.trx" --results-directory TestResults
+
+      - name: Test Media Foundation (Windows)
+        run: dotnet test tests/Framelo.Platform.Tests -c Release --logger "trx;LogFileName=platform.trx" --results-directory TestResults
+
+      - name: Build and publish app
+        run: dotnet publish src/Framelo.App/Framelo.App.csproj -c Release -p:Platform=x64 -r win-x64 -o artifacts/Framelo-win-x64
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: windows/TestResults
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Framelo-win-x64
+          path: windows/artifacts/Framelo-win-x64

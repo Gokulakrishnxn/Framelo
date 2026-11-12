@@ -1,0 +1,265 @@
+{
+  "createdAt": "2026-11-10T10:17:32Z",
+  "formatVersion": 1,
+  "id": "3D427410-15AA-4561-8B1C-9B0CCAFFE9CA",
+  "isRecovered": false,
+  "name": "Sample",
+  "settings": {
+    "aspect": {
+      "customHeight": 10,
+      "customWidth": 16,
+      "kind": "wide"
+    },
+    "audio": {
+      "fadeIn": 0,
+      "fadeOut": 0
+    },
+    "background": {
+      "color": {
+        "a": 1,
+        "b": 0.10588235294117647,
+        "g": 0.09411764705882353,
+        "r": 0.09411764705882353
+      },
+      "gradientAngle": 45,
+      "gradientEnd": {
+        "a": 1,
+        "b": 0.8274509803921568,
+        "g": 0.14901960784313725,
+        "r": 0.7529411764705882
+      },
+      "gradientStart": {
+        "a": 1,
+        "b": 0.8980392156862745,
+        "g": 0.27450980392156865,
+        "r": 0.30980392156862746
+      },
+      "kind": "solid"
+    },
+    "camera": {
+      "backgroundColor": {
+        "a": 1,
+        "b": 0,
+        "g": 0,
+        "r": 0
+      },
+      "borderColor": {
+        "a": 0.9,
+        "b": 1,
+        "g": 1,
+        "r": 1
+      },
+      "borderWidth": 0.012,
+      "cornerRadius": 0.2,
+      "isMirrored": true,
+      "isVisible": false,
+      "positionX": 0.88,
+      "positionY": 0.82,
+      "shadowOpacity": 0.4,
+      "shape": "circle",
+      "size": 0.24,
+      "zoomedScale": 0.8
+    },
+    "captions": {
+      "backgroundColor": {
+        "a": 0.65,
+        "b": 0,
+        "g": 0,
+        "r": 0
+      },
+      "color": {
+        "a": 1,
+        "b": 1,
+        "g": 1,
+        "r": 1
+      },
+      "fontSize": 0.038,
+      "isVisible": true,
+      "positionY": 0.9
+    },
+    "cursor": {
+      "clickColor": {
+        "a": 0.9,
+        "b": 1,
+        "g": 1,
+        "r": 1
+      },
+      "clickEffect": "none",
+      "hidesWhenIdle": false,
+      "idleDelay": 3,
+      "isVisible": true,
+      "pressScale": 0.85,
+      "size": 1.6,
+      "smoothing": 0.55
+    },
+    "export": {
+      "codec": "h264",
+      "container": "mp4",
+      "frameRate": 60,
+      "quality": "high",
+      "resolution": "p2160"
+    },
+    "motion": {
+      "autoZoomEnabled": true,
+      "defaultZoomScale": 2,
+      "easing": "easeInOut",
+      "motionBlur": 0.5,
+      "zoomInDuration": 0.7,
+      "zoomOutDuration": 0.8
+    },
+    "screen": {
+      "cornerRadius": 0.014,
+      "frame": "none",
+      "padding": 0.06,
+      "shadowOpacity": 0.6,
+      "shadowRadius": 0.04
+    }
+  },
+  "sources": [
+    {
+      "capture": {
+        "height": 956,
+        "scale": 2,
+        "width": 1470,
+        "x": 0,
+        "y": 0
+      },
+      "createdAt": "2026-11-10T10:17:32Z",
+      "cursorPath": "cursor.jsonl",
+      "duration": 28.726533208333333,
+      "id": "779AFA82-E8AF-489A-BB71-A490CBA21D03",
+      "kind": "recording",
+      "microphone": {
+        "duration": 28.4,
+        "hasAudio": true,
+        "pixelHeight": 0,
+        "pixelWidth": 0,
+        "rateCorrection": 1,
+        "relativePath": "media/microphone.mov",
+        "startOffset": 0.272922958
+      },
+      "name": "Sample",
+      "screen": {
+        "duration": 28.653333333333332,
+        "hasAudio": false,
+        "pixelHeight": 1912,
+        "pixelWidth": 2940,
+        "rateCorrection": 1,
+        "relativePath": "media/screen.mov",
+        "startOffset": 0.073199875
+      },
+      "systemAudio": {
+        "duration": 28.619979166666667,
+        "hasAudio": true,
+        "pixelHeight": 0,
+        "pixelWidth": 0,
+        "rateCorrection": 1,
+        "relativePath": "media/system-audio.mov",
+        "startOffset": 0.093509166
+      }
+    }
+  ],
+  "timeline": {
+    "captions": [],
+    "keyframes": [],
+    "suppressedAutoZoomRanges": [
+      {
+        "duration": 772498,
+        "start": 189510
+      }
+    ],
+    "textOverlays": [],
+    "tracks": [
+      {
+        "audioClips": [],
+        "clips": [
+          {
+            "id": "5C04F5E3-5174-4B9D-8C12-76FC8CE8F0A5",
+            "isMuted": false,
+            "playbackSpeed": 1,
+            "sourceEnd": 966400,
+            "sourceID": "779AFA82-E8AF-489A-BB71-A490CBA21D03",
+            "sourceStart": 4392,
+            "timelinePosition": 0,
+            "transform": {
+              "offsetX": 0,
+              "offsetY": 0,
+              "scale": 1
+            },
+            "volume": 1
+          },
+          {
+            "id": "07EB31DA-FAFE-45EC-A728-016D96322E56",
+            "isMuted": false,
+            "playbackSpeed": 1,
+            "sourceEnd": 1723592,
+            "sourceID": "779AFA82-E8AF-489A-BB71-A490CBA21D03",
+            "sourceStart": 1062398,
+            "timelinePosition": 962008,
+            "transform": {
+              "offsetX": 0,
+              "offsetY": 0,
+              "scale": 1
+            },
+            "volume": 1
+          }
+        ],
+        "id": "0050F396-4FFA-4E16-93E7-16196B320FAD",
+        "isMuted": false,
+        "isVisible": true,
+        "name": "Screen",
+        "type": "video",
+        "volume": 1
+      },
+      {
+        "audioClips": [],
+        "clips": [],
+        "id": "89B1ACF5-12C2-49CB-839E-360181E43340",
+        "isMuted": false,
+        "isVisible": true,
+        "name": "Microphone",
+        "type": "microphone",
+        "volume": 1
+      },
+      {
+        "audioClips": [],
+        "clips": [],
+        "id": "D85D1C1A-5E65-43F3-B0B6-327E84BCE6AA",
+        "isMuted": false,
+        "isVisible": true,
+        "name": "System Audio",
+        "type": "systemAudio",
+        "volume": 1
+      }
+    ],
+    "zoomEvents": [
+      {
+        "easing": "easeInOut",
+        "endTime": 460555,
+        "followsCursor": true,
+        "id": "DF34A9CC-FBA9-4103-BB37-F47A36956691",
+        "isAutomatic": false,
+        "scale": 2,
+        "startTime": 280555,
+        "targetX": 0.06912999574829932,
+        "targetY": 0.5006496796548117,
+        "transitionIn": 0.7,
+        "transitionOut": 0.8
+      },
+      {
+        "easing": "easeInOut",
+        "endTime": 1104830,
+        "followsCursor": true,
+        "id": "1A86489A-A65E-4869-A83A-FA5344F061A6",
+        "isAutomatic": false,
+        "scale": 2,
+        "startTime": 962008,
+        "targetX": 0.6557371386054421,
+        "targetY": 0.33953321129707115,
+        "transitionIn": 0.7,
+        "transitionOut": 0.8
+      }
+    ]
+  },
+  "updatedAt": "2026-11-10T10:30:29Z"
+}

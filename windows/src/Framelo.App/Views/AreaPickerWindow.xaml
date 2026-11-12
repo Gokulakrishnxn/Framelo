@@ -1,0 +1,16 @@
+<Window
+    x:Class="Framelo.App.Views.AreaPickerWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="Select an area">
+    <Grid x:Name="Root" Background="Black" KeyDown="OnKey" IsTabStop="True">
+        <Image x:Name="Backdrop" Stretch="Fill" />
+        <Canvas x:Name="Surface" Background="#66000000" PointerPressed="OnPressed" PointerMoved="OnMoved" PointerReleased="OnReleased">
+            <Rectangle x:Name="Selection" Stroke="{StaticResource AccentPurpleBrush}" StrokeThickness="2" Fill="#227C5CFF" Visibility="Collapsed" />
+        </Canvas>
+        <Border x:Name="Hint" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,40,0,0" Padding="16,10" CornerRadius="10"
+                Background="{ThemeResource PanelBackgroundBrush}" IsHitTestVisible="False">
+            <TextBlock x:Name="HintText" Text="Drag to select the area to record · Enter to confirm · Esc to cancel" />
+        </Border>
+    </Grid>
+</Window>

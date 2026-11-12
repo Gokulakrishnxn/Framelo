@@ -1,0 +1,57 @@
+<Page
+    x:Class="Framelo.App.Views.DashboardPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Framelo.App.Views"
+    Background="{ThemeResource WindowBackgroundBrush}">
+    <Grid Padding="32,16,32,24" RowSpacing="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <Grid>
+            <StackPanel>
+                <TextBlock Text="Projects" FontSize="28" FontWeight="SemiBold" />
+                <TextBlock x:Name="Subtitle" Foreground="{ThemeResource TextSecondaryBrush}" />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right" VerticalAlignment="Center">
+                <Button x:Name="SettingsButton" Click="OnSettings" ToolTipService.ToolTip="Settings">
+                    <FontIcon Glyph="&#xE713;" FontSize="16" />
+                </Button>
+                <Button Content="Import Video" Click="OnImport" CornerRadius="8" Padding="14,8" />
+                <Button Style="{StaticResource PrimaryButton}" Click="OnNewRecording">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Ellipse Width="10" Height="10" Fill="#FFFF453A" />
+                        <TextBlock Text="New Recording" />
+                    </StackPanel>
+                </Button>
+            </StackPanel>
+        </Grid>
+        <InfoBar x:Name="Banner" Grid.Row="1" IsOpen="False" />
+        <GridView x:Name="Projects" Grid.Row="2" SelectionMode="None" IsItemClickEnabled="True" ItemClick="OnOpen">
+            <GridView.ItemTemplate>
+                <DataTemplate x:DataType="local:ProjectCard">
+                    <Grid Width="260" Margin="0,0,8,8" CornerRadius="10" RightTapped="OnCardRightTapped" Background="{ThemeResource CardBackgroundBrush}"
+                          BorderBrush="{ThemeResource FrameloBorderBrush}" BorderThickness="1">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="146" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <Border Background="{ThemeResource PreviewBackgroundBrush}">
+                            <Image Source="{x:Bind Poster}" Stretch="UniformToFill" />
+                        </Border>
+                        <StackPanel Grid.Row="1" Padding="12,10" Spacing="2">
+                            <TextBlock Text="{x:Bind Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                            <TextBlock Text="{x:Bind Detail}" FontSize="12" Foreground="{ThemeResource TextSecondaryBrush}" />
+                        </StackPanel>
+                    </Grid>
+                </DataTemplate>
+            </GridView.ItemTemplate>
+        </GridView>
+        <StackPanel x:Name="EmptyState" Grid.Row="2" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="10" Visibility="Collapsed">
+            <TextBlock Text="No projects yet" FontSize="20" FontWeight="SemiBold" HorizontalAlignment="Center" />
+            <TextBlock Text="Record your screen to make your first video." Foreground="{ThemeResource TextSecondaryBrush}" HorizontalAlignment="Center" />
+        </StackPanel>
+    </Grid>
+</Page>

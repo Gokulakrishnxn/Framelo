@@ -1,0 +1,9 @@
+bin/
+obj/
+*.user
+.vs/
+TestResults/
+artifacts/
+
+# The repository root ignores *.app bundles; this is a project folder, not a macOS bundle.
+!src/Framelo.App/
