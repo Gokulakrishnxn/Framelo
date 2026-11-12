@@ -10,7 +10,7 @@
             <RowDefinition Height="52" />
             <RowDefinition Height="*" />
             <RowDefinition Height="48" />
-            <RowDefinition Height="200" />
+            <RowDefinition Height="236" />
         </Grid.RowDefinitions>
 
         <!-- Toolbar -->
@@ -58,6 +58,7 @@
                 <Button x:Name="SplitButton" Click="OnSplit" ToolTipService.ToolTip="Split at playhead (S)" Padding="8,6"><FontIcon Glyph="&#xE8C6;" FontSize="14" /></Button>
                 <Button x:Name="DeleteButton" Click="OnDelete" ToolTipService.ToolTip="Delete selection (Del)" Padding="8,6"><FontIcon Glyph="&#xE74D;" FontSize="14" /></Button>
                 <Button x:Name="AddZoomButton" Click="OnAddZoom" ToolTipService.ToolTip="Add zoom at playhead (Z)" Padding="8,6"><FontIcon Glyph="&#xE71E;" FontSize="14" /></Button>
+                <Button x:Name="AddTextButton" Click="OnAddText" ToolTipService.ToolTip="Add text at playhead (T)" Padding="8,6"><FontIcon Glyph="&#xE8D2;" FontSize="14" /></Button>
             </StackPanel>
             <StackPanel Orientation="Horizontal" Spacing="12" HorizontalAlignment="Center" VerticalAlignment="Center">
                 <Button x:Name="PlayButton" Click="OnPlay" Width="44" Height="36" CornerRadius="18"><FontIcon x:Name="PlayIcon" Glyph="&#xE768;" FontSize="14" /></Button>

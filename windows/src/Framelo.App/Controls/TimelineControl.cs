@@ -19,7 +19,7 @@ namespace Framelo.App.Controls;
 /// </summary>
 public sealed class TimelineControl : UserControl
 {
-    private const double RulerHeight = 26, ClipTop = 32, ClipHeight = 54, ZoomTop = 94, ZoomHeight = 30, AudioTop = 132, AudioHeight = 14, Edge = 7, Inset = 12;
+    private const double RulerHeight = 26, ClipTop = 32, ClipHeight = 54, ZoomTop = 94, ZoomHeight = 30, TextTop = 130, TextHeight = 22, CaptionTop = 156, CaptionHeight = 18, AudioTop = 180, AudioHeight = 14, Edge = 7, Inset = 12;
     private static readonly Color Amber = ColorHelper.FromArgb(255, 0xF5, 0xA5, 0x24);
     private static readonly Color Purple = ColorHelper.FromArgb(255, 0x7C, 0x5C, 0xFF);
 
@@ -112,6 +112,14 @@ public sealed class TimelineControl : UserControl
             }, left, ZoomTop);
         }
 
+        Place(new TextBlock { Text = "Text", FontSize = 10, Opacity = 0.5, IsHitTestVisible = false }, 2, TextTop + 3);
+        foreach (var text in project.Timeline.TextOverlays)
+            Interval(text.StartTime, text.EndTime, TextTop, TextHeight, ColorHelper.FromArgb(255, 0x00, 0xA8, 0x9A), text.Text, _model.SelectedId == text.Id);
+        if (project.Timeline.Captions.Count > 0)
+            Place(new TextBlock { Text = "Captions", FontSize = 10, Opacity = 0.5, IsHitTestVisible = false }, 2, CaptionTop + 2);
+        foreach (var caption in project.Timeline.Captions)
+            Interval(caption.StartTime, caption.EndTime, CaptionTop, CaptionHeight, ColorHelper.FromArgb(255, 0x4A, 0x4A, 0x55), caption.Text, _model.SelectedId == caption.Id);
+
         var lane = AudioTop;
         foreach (var track in project.Timeline.Tracks.Where(t => t.Type is TrackKind.Microphone or TrackKind.SystemAudio))
         {
@@ -129,6 +137,21 @@ public sealed class TimelineControl : UserControl
         _canvas.Children.Add(_playhead);
         _canvas.Children.Add(_playheadKnob);
         UpdatePlayhead();
+    }
+
+    private void Interval(MediaTime start, MediaTime end, double top, double height, Color fill, string label, bool selected)
+    {
+        Place(new Border
+        {
+            Width = Math.Max(4, (end - start).Seconds * PixelsPerSecond - 1), Height = height, CornerRadius = new CornerRadius(5),
+            Background = new SolidColorBrush(fill), BorderBrush = new SolidColorBrush(selected ? Colors.White : Colors.Transparent),
+            BorderThickness = new Thickness(selected ? 2 : 0),
+            Child = new TextBlock
+            {
+                Text = label, FontSize = 10, Foreground = new SolidColorBrush(Colors.White), Margin = new Thickness(6, height > 20 ? 4 : 2, 4, 0),
+                TextTrimming = TextTrimming.CharacterEllipsis, IsHitTestVisible = false,
+            },
+        }, X(start.Seconds), top);
     }
 
     private void DrawRuler()
@@ -194,6 +217,22 @@ public sealed class TimelineControl : UserControl
             }
             return ("zoom-new", Guid.Empty);
         }
+        (string, Guid)? Lane(string kind, IEnumerable<(Guid Id, MediaTime Start, MediaTime End)> items)
+        {
+            foreach (var (id, start, end) in items)
+            {
+                var l = X(start.Seconds);
+                var r = X(end.Seconds);
+                if (Math.Abs(p.X - l) <= Edge) return (kind + "-start", id);
+                if (Math.Abs(p.X - r) <= Edge) return (kind + "-end", id);
+                if (p.X > l && p.X < r) return (kind, id);
+            }
+            return null;
+        }
+        if (p.Y >= TextTop && p.Y <= TextTop + TextHeight)
+            return Lane("text", _model.Project.Timeline.TextOverlays.Select(o => (o.Id, o.StartTime, o.EndTime)));
+        if (p.Y >= CaptionTop && p.Y <= CaptionTop + CaptionHeight)
+            return Lane("caption", _model.Project.Timeline.Captions.Select(c => (c.Id, c.StartTime, c.EndTime)));
         _ = t;
         return null;
     }
@@ -221,6 +260,21 @@ public sealed class TimelineControl : UserControl
                 var zoom = project.Timeline.ZoomEvents.First(z => z.Id == hit.Value.Id);
                 _model.Select(EditorSelectionKind.Zoom, zoom.Id);
                 _drag = new Drag(hit.Value.Kind, zoom.Id, p.X, zoom.StartTime, zoom.EndTime, 1);
+                break;
+            }
+            case "text" or "text-start" or "text-end":
+            {
+                var text = project.Timeline.TextOverlays.First(o => o.Id == hit.Value.Id);
+                _model.Select(EditorSelectionKind.Text, text.Id);
+                _drag = new Drag(hit.Value.Kind, text.Id, p.X, text.StartTime, text.EndTime, 1);
+                break;
+            }
+            case "caption" or "caption-start" or "caption-end":
+            {
+                var caption = project.Timeline.Captions.First(c => c.Id == hit.Value.Id);
+                _model.Select(EditorSelectionKind.Caption, caption.Id);
+                _drag = new Drag(hit.Value.Kind, caption.Id, p.X, caption.StartTime, caption.EndTime, 1);
+                _model.Seek(caption.StartTime.Seconds);
                 break;
             }
             case "zoom-new":
@@ -252,7 +306,7 @@ public sealed class TimelineControl : UserControl
         if (_drag == null || _model == null)
         {
             var hit = HitTest(p);
-            ProtectedCursor = InputSystemCursor.Create(hit?.Kind is "clip-start" or "clip-end" or "zoom-start" or "zoom-end"
+            ProtectedCursor = InputSystemCursor.Create(hit?.Kind is { } k && (k.EndsWith("-start") || k.EndsWith("-end"))
                 ? InputSystemCursorShape.SizeWestEast : InputSystemCursorShape.Arrow);
             return;
         }
@@ -284,7 +338,33 @@ public sealed class TimelineControl : UserControl
                 zoom.IsAutomatic = false;   // any edit makes a suggestion manual
                 session.TryPerform(EditCommand.UpsertZoom(zoom), out _);
                 break;
+            case "text" or "text-start" or "text-end":
+            {
+                if (_model.Project.Timeline.TextOverlays.FirstOrDefault(o => o.Id == _drag.Id) is not TextOverlay o) break;
+                var copy = TextEdits.Copy(o);
+                (copy.StartTime, copy.EndTime) = Moved(_drag, delta, copy.StartTime, copy.EndTime);
+                session.TryPerform(TextEdits.UpdateText(copy, "Move Text"), out _);
+                break;
+            }
+            case "caption" or "caption-start" or "caption-end":
+            {
+                if (_model.Project.Timeline.Captions.FirstOrDefault(c => c.Id == _drag.Id) is not Caption c) break;
+                var copy = TextEdits.Copy(c);
+                (copy.StartTime, copy.EndTime) = Moved(_drag, delta, copy.StartTime, copy.EndTime);
+                session.TryPerform(TextEdits.UpdateCaption(copy, "Move Caption"), out _);
+                break;
+            }
         }
+    }
+
+    /// <summary>New start and end for a move ("x"), a start drag ("x-start") or an end drag ("x-end").</summary>
+    private static (MediaTime Start, MediaTime End) Moved(Drag drag, MediaTime delta, MediaTime start, MediaTime end)
+    {
+        var min = MediaTime.FromSeconds(0.2);
+        if (drag.Kind.EndsWith("-start")) return (MediaTime.Min(MediaTime.Max(MediaTime.Zero, drag.A + delta), end - min), end);
+        if (drag.Kind.EndsWith("-end")) return (start, MediaTime.Max(drag.B + delta, start + min));
+        var s = MediaTime.Max(MediaTime.Zero, drag.A + delta);
+        return (s, s + (drag.B - drag.A));
     }
 
     private void OnReleased(object sender, PointerRoutedEventArgs e)

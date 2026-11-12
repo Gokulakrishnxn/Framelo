@@ -57,7 +57,13 @@ public sealed partial class EditorPage : Page
         _model = new EditorModel(session, null!);
         _model.Renderer = RendererFactory?.Invoke(_model) ?? new RawFrameRenderer(_model.Video);
         session.Changed += () => DispatcherQueue.TryEnqueue(OnProjectChanged);
-        _model.SelectionChanged += () => DispatcherQueue.TryEnqueue(() => { if (_model.SelectionKind != EditorSelectionKind.None) ShowSection(_model.SelectionKind == EditorSelectionKind.Zoom ? "zoom" : "clip"); else RefreshInspector(); });
+        _model.SelectionChanged += () => DispatcherQueue.TryEnqueue(() => { if (_model.SelectionKind != EditorSelectionKind.None) ShowSection(_model.SelectionKind switch
+        {
+            EditorSelectionKind.Zoom => "zoom",
+            EditorSelectionKind.Text => "text",
+            EditorSelectionKind.Caption => "captions",
+            _ => "clip",
+        }); else RefreshInspector(); });
         NameBox.Text = project.Name;
         RecoveredBadge.Visibility = project.IsRecovered ? Visibility.Visible : Visibility.Collapsed;
         Timeline.Model = _model;
@@ -174,6 +180,8 @@ public sealed partial class EditorPage : Page
     {
         if (_model == null) return;
         if (_model.SelectedZoom is ZoomEvent z) Perform(EditCommand.RemoveZoom(z.Id));
+        else if (_model.SelectedText is TextOverlay t) Perform(TextEdits.RemoveText(t.Id));
+        else if (_model.SelectedCaption is Caption cap) Perform(TextEdits.RemoveCaption(cap.Id));
         else if (_model.SelectedClip is VideoClip c)
         {
             if (_model.Project.Timeline.VideoClips.Count == 1) { StatusText.Text = "A project needs at least one clip."; return; }
@@ -192,6 +200,19 @@ public sealed partial class EditorPage : Page
             Scale = m.DefaultZoomScale, Easing = m.Easing, TransitionIn = m.ZoomInDuration, TransitionOut = m.ZoomOutDuration,
         };
         if (zoom.EndTime > zoom.StartTime && Perform(EditCommand.UpsertZoom(zoom, "Add Zoom"))) _model.Select(EditorSelectionKind.Zoom, zoom.Id);
+    }
+
+    public void OnAddText(object sender, RoutedEventArgs e)
+    {
+        if (_model == null || _model.Duration <= 0) return;
+        var start = MediaTime.FromSeconds(Math.Min(_model.Playhead, Math.Max(0, _model.Duration - 0.5)));
+        var text = new TextOverlay
+        {
+            Text = "Your title", StartTime = start,
+            EndTime = MediaTime.Min(start + MediaTime.FromSeconds(3), _model.Project.Duration),
+            BackgroundColor = new RgbaColor(0, 0, 0, 0.55),
+        };
+        if (text.EndTime > text.StartTime && Perform(TextEdits.AddText(text))) _model.Select(EditorSelectionKind.Text, text.Id);
     }
 
     private async void OnExport(object sender, RoutedEventArgs e)
@@ -224,6 +245,7 @@ public sealed partial class EditorPage : Page
             case VirtualKey.Z when ctrl: _model.Session.Undo(); break;
             case VirtualKey.Y when ctrl: _model.Session.Redo(); break;
             case VirtualKey.Z: OnAddZoom(this, e); break;
+            case VirtualKey.T when !ctrl: OnAddText(this, e); break;
             case VirtualKey.Delete or VirtualKey.Back: OnDelete(this, e); break;
             case VirtualKey.Left: _model.Seek(_model.Playhead - (shift ? 1 : 1.0 / 30)); break;
             case VirtualKey.Right: _model.Seek(_model.Playhead + (shift ? 1 : 1.0 / 30)); break;
@@ -243,6 +265,8 @@ public sealed partial class EditorPage : Page
         ("zoom", "", "Zoom & motion"),
         ("clip", "", "Clip"),
         ("camera", "\uE714", "Camera"),
+        ("text", "\uE8D2", "Text"),
+        ("captions", "\uE7F0", "Captions"),
         ("audio", "", "Audio"),
     };
 

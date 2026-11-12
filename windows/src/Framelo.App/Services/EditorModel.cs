@@ -13,7 +13,7 @@ public interface IPreviewRenderer : IDisposable
     PreviewImage? Render(EditorSession session, double seconds, int maxWidth, int maxHeight);
 }
 
-public enum EditorSelectionKind { None, Clip, Zoom }
+public enum EditorSelectionKind { None, Clip, Zoom, Text, Caption }
 
 /// <summary>
 /// UI-thread state of the editor: the session (project + undo), the playhead, playback, selection.
@@ -119,8 +119,14 @@ public sealed class EditorModel : IDisposable
     public VideoClip? SelectedClip => SelectionKind == EditorSelectionKind.Clip
         ? Project.Timeline.VideoClips.FirstOrDefault(c => c.Id == SelectedId) : null;
 
+    public TextOverlay? SelectedText => SelectionKind == EditorSelectionKind.Text
+        ? Project.Timeline.TextOverlays.FirstOrDefault(t => t.Id == SelectedId) : null;
+    public Caption? SelectedCaption => SelectionKind == EditorSelectionKind.Caption
+        ? Project.Timeline.Captions.FirstOrDefault(c => c.Id == SelectedId) : null;
+
     private bool Exists(Guid id) =>
-        Project.Timeline.VideoClips.Any(c => c.Id == id) || Project.Timeline.ZoomEvents.Any(z => z.Id == id);
+        Project.Timeline.VideoClips.Any(c => c.Id == id) || Project.Timeline.ZoomEvents.Any(z => z.Id == id) ||
+        Project.Timeline.TextOverlays.Any(t => t.Id == id) || Project.Timeline.Captions.Any(c => c.Id == id);
 
     public void Dispose()
     {

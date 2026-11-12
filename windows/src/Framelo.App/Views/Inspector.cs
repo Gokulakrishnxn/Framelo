@@ -1,5 +1,6 @@
 using Framelo.App.Services;
 using Framelo.Core;
+using Framelo.Platform.Media;
 using Microsoft.UI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -32,6 +33,8 @@ internal sealed class Inspector(EditorPage page)
             case "clip": Clip(); break;
             case "audio": Audio(); break;
             case "camera": Camera(); break;
+            case "text": Text(); break;
+            case "captions": Captions(); break;
         }
         Extend?.Invoke(section, this, Model);
     }
@@ -180,6 +183,114 @@ internal sealed class Inspector(EditorPage page)
             i => Setting("Camera Position", s => { s.Camera.PositionX = corners[i].X; s.Camera.PositionY = corners[i].Y; }, "cam-pos"));
         Toggle("Mirror", c.IsMirrored, v => Setting("Mirror Camera", s => s.Camera.IsMirrored = v, "cam-mirror"));
         SliderRow("Shrink while zoomed", 0.4, 1, c.ZoomedScale, "P0", v => Setting("Camera Zoom Size", s => s.Camera.ZoomedScale = v, "cam-zoom"));
+    }
+
+    private static readonly (string Name, RgbaColor Color)[] TextColors =
+    {
+        ("White", RgbaColor.White), ("Black", RgbaColor.Black), ("Teal", RgbaColor.FromHex(0x00D1BF)),
+        ("Purple", RgbaColor.FromHex(0x7C5CFF)), ("Amber", RgbaColor.FromHex(0xF5A524)),
+    };
+
+    private static readonly (string Name, RgbaColor Color)[] TextBackgrounds =
+    {
+        ("None", RgbaColor.Clear), ("Dark", new RgbaColor(0, 0, 0, 0.55)), ("Light", new RgbaColor(1, 1, 1, 0.85)),
+        ("Purple", RgbaColor.FromHex(0x7C5CFF, 0.9)),
+    };
+
+    private static int Nearest((string Name, RgbaColor Color)[] options, RgbaColor color) =>
+        Array.FindIndex(options, o => Math.Abs(o.Color.R - color.R) + Math.Abs(o.Color.G - color.G) + Math.Abs(o.Color.B - color.B) + Math.Abs(o.Color.A - color.A) < 0.05);
+
+    private void Text()
+    {
+        Header("Text");
+        if (Model.SelectedText is not TextOverlay t)
+        {
+            Note("Add a title or label that appears over the video. Press T to add one at the playhead.");
+            Action("Add text", () => page.OnAddText(page, new RoutedEventArgs()), primary: true);
+            foreach (var o in Model.Project.Timeline.TextOverlays)
+                Action($"{Format.Duration(o.StartTime.Seconds)}  {o.Text}", () => { Model.Select(EditorSelectionKind.Text, o.Id); Model.Seek(o.StartTime.Seconds); });
+            return;
+        }
+        void Change(string name, Action<TextOverlay> change, string key)
+        {
+            var copy = TextEdits.Copy(t);
+            change(copy);
+            Edit(TextEdits.UpdateText(copy, name, $"{key}-{t.Id}"));
+        }
+        var box = new TextBox { Header = "Text", Text = t.Text, AcceptsReturn = false, HorizontalAlignment = HorizontalAlignment.Stretch };
+        box.TextChanged += (_, _) => { if (box.Text.Trim().Length > 0) Change("Edit Text", o => o.Text = box.Text, "text-content"); };
+        Panel.Children.Add(box);
+        SliderRow("Size", 0.02, 0.15, t.FontSize, "P1", v => Change("Text Size", o => o.FontSize = v, "text-size"));
+        Combo("Weight", new[] { "Regular", "Medium", "Semibold", "Bold" }, (int)t.Weight, i => Change("Text Weight", o => o.Weight = (TextWeight)i, "text-weight"));
+        Combo("Colour", TextColors.Select(c => c.Name).ToArray(), Nearest(TextColors, t.Color), i => Change("Text Colour", o => o.Color = TextColors[i].Color, "text-color"));
+        Combo("Background", TextBackgrounds.Select(c => c.Name).ToArray(), Nearest(TextBackgrounds, t.BackgroundColor),
+            i => Change("Text Background", o => o.BackgroundColor = TextBackgrounds[i].Color, "text-bg"));
+        SliderRow("Horizontal position", 0, 1, t.PositionX, "P0", v => Change("Move Text", o => o.PositionX = v, "text-x"));
+        SliderRow("Vertical position", 0, 1, t.PositionY, "P0", v => Change("Move Text", o => o.PositionY = v, "text-y"));
+        SliderRow("Fade", 0, 1, t.FadeDuration, "0.00 s", v => Change("Text Fade", o => o.FadeDuration = v, "text-fade"));
+        Note($"{Format.Duration(t.StartTime.Seconds)} – {Format.Duration(t.EndTime.Seconds)} · drag it in the text lane to move or resize it.");
+        Action("Delete text", () => Edit(TextEdits.RemoveText(t.Id)));
+    }
+
+    private void Captions()
+    {
+        Header("Captions");
+        var captions = Model.Project.Timeline.Captions;
+        var languages = SpeechTranscriber.Languages();
+        if (languages.Count == 0)
+            Note("Windows speech recognition is not installed. Add a speech language in Settings › Time & language › Speech, then come back.");
+        else
+        {
+            Note("Captions are made from your microphone on this PC. Nothing is uploaded.");
+            var index = Math.Max(0, languages.ToList().FindIndex(l => l.Name == System.Globalization.CultureInfo.CurrentUICulture.Name));
+            var language = languages[index];
+            if (languages.Count > 1) Combo("Language", languages.Select(l => l.DisplayName).ToArray(), index, i => language = languages[i]);
+            Action(captions.Count == 0 ? "Generate captions" : "Generate again", () => _ = CaptionFlow.GenerateAsync(page, Model, language), primary: true);
+        }
+        Action("Add caption at playhead", () =>
+        {
+            var start = MediaTime.FromSeconds(Model.Playhead);
+            var caption = new Caption { Text = "Caption", StartTime = start, EndTime = MediaTime.Min(start + MediaTime.FromSeconds(2), Model.Project.Duration) };
+            if (caption.EndTime <= caption.StartTime) return;
+            var list = captions.Select(TextEdits.Copy).Where(c => !c.Range.Overlaps(caption.Range)).Append(caption).OrderBy(c => c.StartTime.Ticks);
+            Edit(TextEdits.SetCaptions(list, "Add Caption"));
+            Model.Select(EditorSelectionKind.Caption, caption.Id);
+        });
+        if (captions.Count == 0) return;
+
+        Header("Style");
+        Toggle("Show captions", S.Captions.IsVisible, v => Setting("Show Captions", s => s.Captions.IsVisible = v, "cap-visible"));
+        SliderRow("Size", 0.02, 0.08, S.Captions.FontSize, "P1", v => Setting("Caption Size", s => s.Captions.FontSize = v, "cap-size"));
+        SliderRow("Vertical position", 0.5, 0.97, S.Captions.PositionY, "P0", v => Setting("Caption Position", s => s.Captions.PositionY = v, "cap-y"));
+        SliderRow("Background", 0, 1, S.Captions.BackgroundColor.A, "P0", v => Setting("Caption Background", s => s.Captions.BackgroundColor = s.Captions.BackgroundColor with { A = v }, "cap-bg"));
+
+        Header($"Lines ({captions.Count})");
+        Action("Delete all captions", () => Edit(TextEdits.SetCaptions(Array.Empty<Caption>(), "Delete Captions")));
+        foreach (var caption in captions)
+        {
+            var c = caption;
+            var selected = Model.SelectedId == c.Id;
+            var time = new HyperlinkButton { Content = Format.Duration(c.StartTime.Seconds), Padding = new Thickness(0), FontSize = 12 };
+            time.Click += (_, _) => { Model.Select(EditorSelectionKind.Caption, c.Id); Model.Seek(c.StartTime.Seconds); };
+            var box = new TextBox { Text = c.Text, TextWrapping = TextWrapping.Wrap, AcceptsReturn = false, FontSize = 13 };
+            if (selected) box.BorderBrush = (Brush)Application.Current.Resources["AccentPurpleBrush"];
+            box.LostFocus += (_, _) =>
+            {
+                var text = box.Text.Trim();
+                if (text.Length == 0 || text == c.Text) return;
+                var copy = TextEdits.Copy(c);
+                copy.Text = text;
+                Edit(TextEdits.UpdateCaption(copy));
+            };
+            var remove = new Button { Content = new FontIcon { Glyph = "\uE711", FontSize = 10 }, Padding = new Thickness(6), Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent), BorderThickness = new Thickness(0) };
+            ToolTipService.SetToolTip(remove, "Delete line");
+            remove.Click += (_, _) => Edit(TextEdits.RemoveCaption(c.Id));
+            var header = new Grid();
+            header.Children.Add(time);
+            remove.HorizontalAlignment = HorizontalAlignment.Right;
+            header.Children.Add(remove);
+            Panel.Children.Add(new StackPanel { Spacing = 2, Children = { header, box } });
+        }
     }
 
     private void Audio()
