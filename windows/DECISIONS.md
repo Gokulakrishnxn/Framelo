@@ -52,3 +52,10 @@ Foundation always writes after the media data, so no sample offsets change.
 
 **W11. CI is the Windows build machine.** Development happened on a Mac without a Windows toolchain. GitHub Actions
 (`windows-latest`) builds the WinUI app, runs all three test suites and publishes the app on every push.
+
+**W12. Webcam frames are stamped on arrival.** Camera samples are read with the Media Foundation source reader
+and stamped with the host clock when they arrive, rather than with the device's own timestamps, so all tracks share
+one session clock. The small capture latency of a webcam is not visible in a picture-in-picture bubble.
+
+**W13. Global shortcuts use Ctrl+Shift+2 and Ctrl+Shift+3.** They mirror ⇧⌘2 on macOS. Ctrl+Shift+P was avoided
+because many Windows apps (VS Code, browsers) already use it; RegisterHotKey would take it from them.

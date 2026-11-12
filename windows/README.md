@@ -56,8 +56,10 @@ instructions and applied only when the video is rendered.
 
 **Recording**
 - Record a whole display, a single window, or an area you drag out on screen.
-- Microphone and system audio, each on its own track; a live microphone meter.
-- Countdown, pause/resume, stop and discard from a floating capture bar.
+- Microphone, system audio and webcam, each on its own track; a live microphone meter. A device that cannot be
+  opened is skipped with a message instead of failing the recording.
+- Countdown, pause/resume, stop and discard from a floating capture bar, or from anywhere with the global
+  shortcuts Ctrl+Shift+2 (start/stop) and Ctrl+Shift+3 (pause/resume).
 - The system cursor is not burned into the video; it is recorded separately (position, clicks, shape) and drawn
   at render time, so it can be resized, smoothed and hidden.
 - Framelo's own windows are excluded from the recording.
@@ -72,6 +74,7 @@ instructions and applied only when the video is rendered.
 - The camera follows the cursor while zoomed, with a critically damped spring and a dead zone.
 - Background presets (gradients, solid colours), padding, corner radius, shadow, inset and an optional window frame.
 - Cursor size, smoothing, click ripples or rings, hide-when-idle.
+- Camera bubble: circle or rounded, size, corner, mirroring, and shrinking while the screen is zoomed.
 - Per-track volume and mute, project fade in and fade out.
 - Unlimited undo and redo; every edit is validated before it is applied, and the project autosaves.
 
@@ -131,11 +134,13 @@ checklist below.
 **Manual checklist (on a Windows PC)**
 1. Record a display with microphone and system audio for ~20 s; click a few times; stop. The editor opens with
    suggested zooms on the zoom lane.
-2. Record a window and an area. Check the cursor lines up with what was clicked.
+2. Record a window (resize it while recording) and an area, one of them with the camera on. Check the cursor lines
+   up with what was clicked and the camera bubble appears in the editor.
 3. Kill `Framelo.exe` from Task Manager during a recording, start it again: the dashboard reports a recovered
    recording that opens and plays.
 4. Split, trim, delete and undo; drag a zoom; change the background; play with audio.
 5. Export 1080p60 H.264 and open the file in the Films & TV app.
+6. With another app focused, press Ctrl+Shift+2 to start, Ctrl+Shift+3 to pause and resume, Ctrl+Shift+2 to stop.
 
 ## Architecture
 
@@ -207,6 +212,8 @@ Imported videos are referenced by absolute path and never copied or modified.
 | Ctrl+Z / Ctrl+Shift+Z (Ctrl+Y) | Undo / redo |
 | ← / → | Previous / next frame (Shift: one second) |
 | Home / End | Start / end |
+| Ctrl+Shift+2 (anywhere) | Start or stop a recording |
+| Ctrl+Shift+3 (anywhere) | Pause or resume a recording |
 | Ctrl + mouse wheel | Zoom the timeline |
 
 ## Privacy
@@ -219,9 +226,7 @@ Imported videos are referenced by absolute path and never copied or modified.
 
 - Built and unit/integration-tested on GitHub Actions; screen capture, the capture bar and the editor UI still
   need the manual checklist on real hardware.
-- No webcam recording yet on Windows (projects from macOS with a camera track play back with their camera bubble).
 - Captions and text overlays are rendered and preserved, but there is no caption transcription or text editor UI yet.
-- Global recording shortcuts are not implemented yet.
 - On Windows 10 the yellow capture border cannot be hidden (Windows 11 hides it).
 - Compositing runs on the CPU with SkiaSharp; 4K exports are slower than real time.
 
